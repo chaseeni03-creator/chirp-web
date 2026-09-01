@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-/** Autocomplete text input searching nfl_players by name. Calls onSelect(player) on pick. */
-export default function PlayerSearchInput({ onSelect, placeholder = 'Search player…', disabled }) {
+/** Autocomplete text input searching the given players table by name. Calls onSelect(player) on pick. */
+export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -16,7 +16,7 @@ export default function PlayerSearchInput({ onSelect, placeholder = 'Search play
     let cancelled = false
     const t = setTimeout(async () => {
       const { data } = await supabase
-        .from('nfl_players')
+        .from(table)
         .select('id, full_name, position, current_team')
         .ilike('full_name', `%${query.trim()}%`)
         .order('full_name')
@@ -27,7 +27,7 @@ export default function PlayerSearchInput({ onSelect, placeholder = 'Search play
       cancelled = true
       clearTimeout(t)
     }
-  }, [query])
+  }, [query, table])
 
   useEffect(() => {
     function onClickOutside(e) {

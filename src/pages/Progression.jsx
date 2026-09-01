@@ -2,29 +2,23 @@ import { useEffect, useState } from 'react'
 import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
+import { useSport } from '../context/SportContext'
+import { TABLES, CAREER_STAT_CONFIG, SPORT_META } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 
-function keyFor(difficulty) {
-  return `progression-${difficulty}`
-}
-
-const PRIMARY_STAT = {
-  QB: ['passing_yards', 'Pass Yds'],
-  RB: ['rushing_yards', 'Rush Yds'],
-  REC: ['receiving_yards', 'Rec Yds'],
-  DEF: ['tackles', 'Tackles'],
-}
-
-function groupFor(position) {
-  if (position === 'QB') return 'QB'
-  if (position === 'RB' || position === 'FB') return 'RB'
-  if (['WR', 'TE'].includes(position)) return 'REC'
-  return 'DEF'
+const PLAYER_FIELDS = {
+  nfl: 'id, full_name, position',
+  mlb: 'id, full_name, position, position_group',
+  nba: 'id, full_name, position',
 }
 
 export default function Progression() {
+  const { sport } = useSport()
+  const tables = TABLES[sport]
+  const config = CAREER_STAT_CONFIG[sport]
+
   const [difficulty, setDifficulty] = useState('medium')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -33,6 +27,7 @@ export default function Progression() {
   const [revealed, setRevealed] = useState(1)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
+  const gameKey = `${sport}-progression-${difficulty}`
 
   useEffect(() => {
     let cancelled = false
@@ -41,7 +36,6 @@ export default function Progression() {
     setFinished(null)
 
     async function load() {
-      const gameKey = keyFor(difficulty)
       const already = getTodayResult(gameKey, today)
       if (already) {
         if (!cancelled) {
@@ -52,7 +46,7 @@ export default function Progression() {
       }
 
       const { data: daily, error: dailyErr } = await supabase
-        .from('progression_daily')
+        .from(tables.progressionDaily)
         .select('player_id')
         .eq('game_date', today)
         .eq('difficulty', difficulty)
@@ -66,8 +60,8 @@ export default function Progression() {
       }
 
       const [{ data: p }, { data: s }] = await Promise.all([
-        supabase.from('nfl_players').select('id, full_name, position').eq('id', daily.player_id).single(),
-        supabase.from('nfl_season_stats').select('*').eq('player_id', daily.player_id).order('season'),
+        supabase.from(tables.players).select(PLAYER_FIELDS[sport]).eq('id', daily.player_id).single(),
+        supabase.from(tables.seasonStats).select('*').eq('player_id', daily.player_id).order('season'),
       ])
 
       if (!cancelled) {
@@ -82,10 +76,9 @@ export default function Progression() {
     return () => {
       cancelled = true
     }
-  }, [today, difficulty])
+  }, [today, sport, difficulty, gameKey, tables.progressionDaily, tables.players, tables.seasonStats])
 
   function finish(won) {
-    const gameKey = keyFor(difficulty)
     const result = { won, seasonsRevealed: revealed, difficulty: difficulty === 'hard' ? 'Hard' : 'Normal', playerName: player.full_name }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, won)
@@ -99,12 +92,14 @@ export default function Progression() {
     }
     const next = Math.min(revealed + 1, seasons.length)
     setRevealed(next)
-    saveInProgress(keyFor(difficulty), today, { revealed: next })
+    saveInProgress(gameKey, today, { revealed: next })
     if (next >= seasons.length) finish(false)
   }
 
+  const title = `The Progression — ${SPORT_META[sport].label}`
+
   const shell = (body) => (
-    <GameShell emoji="⏩" title="The Progression">
+    <GameShell emoji="⏩" title={title}>
       <div className="mb-4 flex overflow-hidden rounded-xl border border-[var(--color-border)]">
         {['medium', 'hard'].map((d) => (
           <button
@@ -138,8 +133,9 @@ export default function Progression() {
     )
   }
 
-  const group = groupFor(player.position)
-  const [statKey, statLabel] = PRIMARY_STAT[group]
+  const group = config.groupFor(sport === 'mlb' ? player.position_group : player.position)
+  const statKey = config.primary[group]
+  const statLabel = config.primaryLabel[group]
   const visible = seasons.slice(0, revealed)
 
   return shell(
@@ -147,7 +143,7 @@ export default function Progression() {
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
         Guess the player from their career, one season at a time.
       </p>
-      <PlayerSearchInput onSelect={handleGuess} placeholder="Guess the player…" />
+      <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
 
       <div className="mt-6 space-y-2">
         {visible.map((s, i) => (

@@ -2,36 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak } from '../lib/storage'
 import { buildShareText } from '../lib/share'
+import { useSport } from '../context/SportContext'
+import { TABLES, CAREER_STAT_CONFIG, SPORT_META } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 
-const GAME_KEY = 'career-builder'
-
-const PRIMARY_STAT_BY_GROUP = {
-  QB: 'passing_yards',
-  RB: 'rushing_yards',
-  REC: 'receiving_yards',
-  DEF: 'tackles',
+const PLAYER_FIELDS = {
+  nfl: 'id, full_name, position',
+  mlb: 'id, full_name, position, position_group',
+  nba: 'id, full_name, position',
 }
 
-function groupFor(position) {
-  if (position === 'QB') return 'QB'
-  if (position === 'RB' || position === 'FB') return 'RB'
-  if (['WR', 'TE'].includes(position)) return 'REC'
-  return 'DEF'
-}
-
-const DISPLAY_KEYS_BY_GROUP = {
-  QB: [['passing_yards', 'Pass Yds'], ['passing_touchdowns', 'Pass TD'], ['games_played', 'Games']],
-  RB: [['rushing_yards', 'Rush Yds'], ['rushing_touchdowns', 'Rush TD'], ['games_played', 'Games']],
-  REC: [['receiving_yards', 'Rec Yds'], ['receiving_touchdowns', 'Rec TD'], ['games_played', 'Games']],
-  DEF: [['tackles', 'Tackles'], ['sacks', 'Sacks'], ['games_played', 'Games']],
-}
-
-function pickFiveSeasons(seasons, group) {
-  const statKey = PRIMARY_STAT_BY_GROUP[group]
-  const meaningful = seasons.filter((s) => Object.values(DISPLAY_KEYS_BY_GROUP[group]).some(([k]) => (s[k] ?? 0) !== 0))
+function pickFiveSeasons(seasons, statKey, displayKeys) {
+  const meaningful = seasons.filter((s) => displayKeys.some(([k]) => (s[k] ?? 0) !== 0))
   const rows = meaningful.length >= 5 ? meaningful : seasons
   if (rows.length <= 5) return rows
 
@@ -43,10 +27,7 @@ function pickFiveSeasons(seasons, group) {
   const chosen = new Set([first.id, last.id, peak.id])
   const remaining = sorted.filter((s) => !chosen.has(s.id))
   const step = Math.max(1, Math.floor(remaining.length / 2))
-  for (let i = 0; chosen.size < 5 && i < remaining.length; i += step) {
-    chosen.add(remaining[i].id)
-  }
-  // fill any leftover slots if the stepping didn't reach 5
+  for (let i = 0; chosen.size < 5 && i < remaining.length; i += step) chosen.add(remaining[i].id)
   for (const r of remaining) {
     if (chosen.size >= 5) break
     chosen.add(r.id)
@@ -64,6 +45,11 @@ function shuffle(arr) {
 }
 
 export default function CareerBuilder() {
+  const { sport } = useSport()
+  const gameKey = `${sport}-career-builder`
+  const tables = TABLES[sport]
+  const config = CAREER_STAT_CONFIG[sport]
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [player, setPlayer] = useState(null)
@@ -74,8 +60,13 @@ export default function CareerBuilder() {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setError(null)
+    setFinished(null)
+    setGuess(null)
+
     async function load() {
-      const already = getTodayResult(GAME_KEY, today)
+      const already = getTodayResult(gameKey, today)
       if (already) {
         if (!cancelled) {
           setFinished(already)
@@ -85,8 +76,8 @@ export default function CareerBuilder() {
       }
 
       const { data: daily, error: dailyErr } = await supabase
-        .from('career_builder_daily')
-        .select('player_id, difficulty')
+        .from(tables.careerBuilderDaily)
+        .select('player_id, difficulty, selected_seasons')
         .eq('game_date', today)
         .maybeSingle()
       if (dailyErr || !daily) {
@@ -98,13 +89,22 @@ export default function CareerBuilder() {
       }
 
       const [{ data: p }, { data: seasons }] = await Promise.all([
-        supabase.from('nfl_players').select('id, full_name, position').eq('id', daily.player_id).single(),
-        supabase.from('nfl_season_stats').select('*').eq('player_id', daily.player_id).order('season'),
+        supabase.from(tables.players).select(PLAYER_FIELDS[sport]).eq('id', daily.player_id).single(),
+        supabase.from(tables.seasonStats).select('*').eq('player_id', daily.player_id).order('season'),
       ])
 
       if (!cancelled) {
-        const group = groupFor(p.position)
-        const chosen = pickFiveSeasons(seasons || [], group)
+        const group = config.groupFor(sport === 'mlb' ? p.position_group : p.position)
+        const statKey = config.primary[group]
+        const displayKeys = config.display[group]
+
+        let chosen
+        if (Array.isArray(daily.selected_seasons) && daily.selected_seasons.length > 0) {
+          chosen = (seasons || []).filter((s) => daily.selected_seasons.includes(s.season))
+        } else {
+          chosen = pickFiveSeasons(seasons || [], statKey, displayKeys)
+        }
+
         setPlayer({ ...p, group })
         setCards(shuffle(chosen))
         setLoading(false)
@@ -114,7 +114,7 @@ export default function CareerBuilder() {
     return () => {
       cancelled = true
     }
-  }, [today])
+  }, [today, sport, gameKey, tables.careerBuilderDaily, tables.players, tables.seasonStats, config])
 
   function move(index, dir) {
     const next = [...cards]
@@ -134,30 +134,32 @@ export default function CareerBuilder() {
     const guessedPlayer = guess?.id === player.id
 
     const result = { orderScore, maxOrderScore: 100, guessedPlayer, correctPositions, playerName: player.full_name }
-    saveTodayResult(GAME_KEY, today, result)
-    bumpStreak(GAME_KEY, today, correctPositions === 5)
+    saveTodayResult(gameKey, today, result)
+    bumpStreak(gameKey, today, correctPositions === 5)
     setFinished(result)
   }
 
-  if (loading) return <GameShell emoji="📈" title="Career Builder"><Loading /></GameShell>
-  if (error) return <GameShell emoji="📈" title="Career Builder"><ErrorMsg message={error} /></GameShell>
+  const title = `Career Builder — ${SPORT_META[sport].label}`
+
+  if (loading) return <GameShell emoji="📈" title={title}><Loading /></GameShell>
+  if (error) return <GameShell emoji="📈" title={title}><ErrorMsg message={error} /></GameShell>
 
   if (finished) {
     return (
-      <GameShell emoji="📈" title="Career Builder">
+      <GameShell emoji="📈" title={title}>
         <p className="mb-4 text-center font-semibold">
           {finished.correctPositions}/5 seasons in the right order
           {finished.guessedPlayer ? ' — and you guessed the player! 🎉' : `. Player: ${finished.playerName}`}
         </p>
-        <ShareResult text={buildShareText(GAME_KEY, today, finished)} />
+        <ShareResult text={buildShareText('career-builder', today, finished)} />
       </GameShell>
     )
   }
 
-  const displayKeys = DISPLAY_KEYS_BY_GROUP[player.group]
+  const displayKeys = config.display[player.group]
 
   return (
-    <GameShell emoji="📈" title="Career Builder">
+    <GameShell emoji="📈" title={title}>
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
         Put these 5 seasons in chronological order (earliest first). Use the arrows to reorder.
       </p>
@@ -184,7 +186,7 @@ export default function CareerBuilder() {
 
       <div className="mt-6">
         <p className="mb-2 text-sm text-[var(--color-text-secondary)]">Bonus: guess the player</p>
-        <PlayerSearchInput onSelect={setGuess} placeholder="Optional player guess…" />
+        <PlayerSearchInput table={tables.players} onSelect={setGuess} placeholder="Optional player guess…" />
         {guess && <p className="mt-2 text-sm">Guessed: <span className="font-semibold">{guess.full_name}</span></p>}
       </div>
 

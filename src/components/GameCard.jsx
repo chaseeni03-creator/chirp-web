@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-export default function GameCard({ game, completed }) {
+export default function GameCard({ game, sportLabel, completed }) {
   return (
     <Link
       to={game.path}
@@ -11,7 +11,7 @@ export default function GameCard({ game, completed }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="font-extrabold">{game.name}</p>
-        <p className="truncate text-sm text-[var(--color-text-secondary)]">{game.description}</p>
+        <p className="truncate text-sm text-[var(--color-text-secondary)]">{game.description(sportLabel)}</p>
       </div>
       {completed ? (
         <span className="shrink-0 rounded-full bg-[var(--color-success)]/12 px-3 py-1.5 text-xs font-bold text-[var(--color-success)]">

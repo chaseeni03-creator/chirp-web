@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
+import Seo from './Seo'
 
 export default function GameShell({ emoji, title, children }) {
   return (
     <div>
+      <Seo title={title} />
       <div className="mb-6 flex items-center gap-3">
         <Link
           to="/"

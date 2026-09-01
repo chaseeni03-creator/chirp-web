@@ -2,61 +2,24 @@ import { useEffect, useState } from 'react'
 import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
-import Seo from '../components/Seo'
+import { useSport } from '../context/SportContext'
+import { TABLES, STAT_LINE_CONFIG, SPORT_META } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 
-const GAME_KEY = 'stat-line'
-
-const CLUES_BY_GROUP = {
-  QB: [
-    ['team', 'Team'],
-    ['games_played', 'Games'],
-    ['passing_completions', 'Completions'],
-    ['passing_attempts', 'Attempts'],
-    ['passing_yards', 'Pass Yards'],
-    ['passing_touchdowns', 'Pass TDs'],
-    ['interceptions_thrown', 'INTs'],
-    ['passer_rating', 'Rating'],
-  ],
-  RB: [
-    ['team', 'Team'],
-    ['games_played', 'Games'],
-    ['rushing_attempts', 'Carries'],
-    ['rushing_yards', 'Rush Yards'],
-    ['rushing_touchdowns', 'Rush TDs'],
-    ['receptions', 'Receptions'],
-    ['receiving_yards', 'Rec Yards'],
-  ],
-  REC: [
-    ['team', 'Team'],
-    ['games_played', 'Games'],
-    ['targets', 'Targets'],
-    ['receptions', 'Receptions'],
-    ['receiving_yards', 'Rec Yards'],
-    ['receiving_touchdowns', 'Rec TDs'],
-    ['yards_per_reception', 'Yds/Rec'],
-  ],
-  DEF: [
-    ['team', 'Team'],
-    ['games_played', 'Games'],
-    ['tackles', 'Tackles'],
-    ['sacks', 'Sacks'],
-    ['interceptions_caught', 'INTs'],
-    ['forced_fumbles', 'Forced Fum'],
-    ['passes_defended', 'Pass Def'],
-  ],
-}
-
-function groupFor(position) {
-  if (position === 'QB') return 'QB'
-  if (position === 'RB' || position === 'FB') return 'RB'
-  if (['WR', 'TE'].includes(position)) return 'REC'
-  return 'DEF'
+const PLAYER_FIELDS = {
+  nfl: 'id, full_name, position',
+  mlb: 'id, full_name, position, position_group',
+  nba: 'id, full_name, position',
 }
 
 export default function StatLine() {
+  const { sport } = useSport()
+  const gameKey = `${sport}-stat-line`
+  const tables = TABLES[sport]
+  const config = STAT_LINE_CONFIG[sport]
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [player, setPlayer] = useState(null)
@@ -69,8 +32,14 @@ export default function StatLine() {
 
   useEffect(() => {
     let cancelled = false
+    setLoading(true)
+    setError(null)
+    setFinished(null)
+    setRevealed(1)
+    setWrongGuesses(0)
+
     async function load() {
-      const already = getTodayResult(GAME_KEY, today)
+      const already = getTodayResult(gameKey, today)
       if (already) {
         if (!cancelled) {
           setFinished(already)
@@ -80,7 +49,7 @@ export default function StatLine() {
       }
 
       const { data: daily, error: dailyErr } = await supabase
-        .from('stat_line_daily')
+        .from(tables.statLineDaily)
         .select('player_id, season')
         .eq('game_date', today)
         .maybeSingle()
@@ -93,20 +62,15 @@ export default function StatLine() {
       }
 
       const [{ data: p }, { data: s }] = await Promise.all([
-        supabase.from('nfl_players').select('id, full_name, position').eq('id', daily.player_id).single(),
-        supabase
-          .from('nfl_season_stats')
-          .select('*')
-          .eq('player_id', daily.player_id)
-          .eq('season', daily.season)
-          .maybeSingle(),
+        supabase.from(tables.players).select(PLAYER_FIELDS[sport]).eq('id', daily.player_id).single(),
+        supabase.from(tables.seasonStats).select('*').eq('player_id', daily.player_id).eq('season', daily.season).maybeSingle(),
       ])
 
       if (!cancelled) {
         setPlayer(p)
         setStats(s)
         setSeason(daily.season)
-        const saved = getInProgress(GAME_KEY, today)
+        const saved = getInProgress(gameKey, today)
         if (saved) {
           setRevealed(saved.revealed)
           setWrongGuesses(saved.wrongGuesses)
@@ -118,19 +82,20 @@ export default function StatLine() {
     return () => {
       cancelled = true
     }
-  }, [today])
+  }, [today, sport, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
 
-  const clues = player ? CLUES_BY_GROUP[groupFor(player.position)] : []
+  const group = player ? config.groupFor(sport === 'mlb' ? player.position_group : player.position) : null
+  const clues = group ? config.clues[group] : []
   const maxClues = clues.length
 
   function persist(nextRevealed, nextWrong) {
-    saveInProgress(GAME_KEY, today, { revealed: nextRevealed, wrongGuesses: nextWrong })
+    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong })
   }
 
   function finish(won) {
     const result = { won, cluesUsed: revealed, maxClues }
-    saveTodayResult(GAME_KEY, today, result)
-    bumpStreak(GAME_KEY, today, won)
+    saveTodayResult(gameKey, today, result)
+    bumpStreak(gameKey, today, won)
     setFinished(result)
   }
 
@@ -154,26 +119,26 @@ export default function StatLine() {
     if (next >= maxClues) finish(false)
   }
 
-  if (loading) return <GameShell emoji="📊" title="Stat Line"><Loading /></GameShell>
-  if (error) return <GameShell emoji="📊" title="Stat Line"><ErrorMsg message={error} /></GameShell>
+  const title = `Stat Line — ${SPORT_META[sport].label}`
+
+  if (loading) return <GameShell emoji="📊" title={title}><Loading /></GameShell>
+  if (error) return <GameShell emoji="📊" title={title}><ErrorMsg message={error} /></GameShell>
 
   if (finished) {
     return (
-      <GameShell emoji="📊" title="Stat Line">
+      <GameShell emoji="📊" title={title}>
         <p className="mb-4 text-center font-semibold">
           {finished.won ? `Solved in ${finished.cluesUsed}/${finished.maxClues} clues! 🎉` : `The answer was ${player?.full_name ?? 'unknown'}.`}
         </p>
-        <ShareResult text={buildShareText(GAME_KEY, today, finished)} />
+        <ShareResult text={buildShareText('stat-line', today, finished)} />
       </GameShell>
     )
   }
 
   return (
-    <GameShell emoji="📊" title="Stat Line">
-      <Seo title="Stat Line" description="Identify the NFL player from a progressively revealed season stat line." />
-
+    <GameShell emoji="📊" title={title}>
       <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
-        <span className="font-bold">{player.position}</span>
+        <span className="font-bold">{sport === 'mlb' ? player.position_group : player.position}</span>
         <span className="text-sm text-[var(--color-text-secondary)]">{season} Season</span>
       </div>
 
@@ -184,22 +149,18 @@ export default function StatLine() {
             <div
               key={key}
               className={`rounded-xl border p-3 ${
-                isRevealed
-                  ? 'border-[var(--color-border)] bg-[var(--color-surface)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-elevated)]'
+                isRevealed ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)]'
               }`}
             >
               <p className="text-xs text-[var(--color-text-secondary)]">{label}</p>
-              <p className="text-lg font-bold tabular-nums">
-                {isRevealed ? (stats ? (stats[key] ?? '—') : '—') : '?'}
-              </p>
+              <p className="text-lg font-bold tabular-nums">{isRevealed ? (stats ? (stats[key] ?? '—') : '—') : '?'}</p>
             </div>
           )
         })}
       </div>
 
       <div className="mt-6">
-        <PlayerSearchInput onSelect={handleGuess} placeholder="Guess the player…" />
+        <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
           className="mt-3 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"

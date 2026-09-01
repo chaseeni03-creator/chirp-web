@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, todayStr } from '../lib/supabase'
 import { getBest, setBestIfHigher } from '../lib/storage'
 import { buildShareText } from '../lib/share'
-import { todayStr } from '../lib/supabase'
+import { useSport } from '../context/SportContext'
+import { TABLES, MORE_OR_LESS_CONFIG, SPORT_META } from '../lib/sports'
 import GameShell, { Loading } from '../components/GameShell'
 import ShareResult from '../components/ShareResult'
 
@@ -15,28 +16,22 @@ const ERAS = [
   { key: 'all', label: 'All Time', from: null, to: null },
 ]
 
-const STAT_BY_GROUP = {
-  QB: ['passing_yards', 'Career Passing Yards'],
-  RB: ['rushing_yards', 'Career Rushing Yards'],
-  REC: ['receiving_yards', 'Career Receiving Yards'],
-  DEF: ['tackles', 'Career Tackles'],
-}
-
 const START_LIVES = 3
-const STORAGE_KEY = 'more-or-less'
 
-async function fetchPair(era) {
-  const group = ['QB', 'RB', 'REC', 'DEF'][Math.floor(Math.random() * 4)]
-  const [statKey] = STAT_BY_GROUP[group]
-  const positions = group === 'QB' ? ['QB'] : group === 'RB' ? ['RB', 'FB'] : group === 'REC' ? ['WR', 'TE'] : ['LB', 'DB', 'CB', 'S', 'DE', 'DT', 'DL']
+async function fetchPair(tables, config, era) {
+  const groupKeys = Object.keys(config.groups)
+  const group = config.groups[groupKeys[Math.floor(Math.random() * groupKeys.length)]]
+  const { statKey, positions, positionGroup } = group
 
-  let query = supabase.from('nfl_players').select('id, full_name, position, current_team, season_first').in('position', positions).limit(300)
+  let query = supabase.from(tables.players).select('id, full_name, position, current_team, season_first').limit(300)
+  if (positions) query = query.in('position', positions)
+  if (positionGroup) query = query.eq('position_group', positionGroup)
   if (era.from) query = query.gte('season_first', era.from).lte('season_first', era.to)
   const { data: players } = await query
   if (!players || players.length < 2) return null
 
   const ids = players.map((p) => p.id)
-  const { data: careerRows } = await supabase.from('nfl_career_stats').select(`player_id, ${statKey}`).in('player_id', ids)
+  const { data: careerRows } = await supabase.from(tables.careerStats).select(`player_id, ${statKey}`).in('player_id', ids)
   const statById = new Map((careerRows || []).map((r) => [r.player_id, r[statKey]]))
 
   const candidates = players.filter((p) => (statById.get(p.id) ?? 0) > 0)
@@ -45,15 +40,18 @@ async function fetchPair(era) {
   const shuffled = [...candidates].sort(() => Math.random() - 0.5)
   const [a, b] = shuffled.slice(0, 2)
   return {
-    group,
-    statKey,
-    statLabel: STAT_BY_GROUP[group][1],
+    statLabel: group.label,
     a: { ...a, value: statById.get(a.id) ?? 0 },
     b: { ...b, value: statById.get(b.id) ?? 0 },
   }
 }
 
 export default function MoreOrLess() {
+  const { sport } = useSport()
+  const tables = TABLES[sport]
+  const config = MORE_OR_LESS_CONFIG[sport]
+  const storageKey = `${sport}-more-or-less`
+
   const [era, setEra] = useState(null)
   const [round, setRound] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -62,7 +60,7 @@ export default function MoreOrLess() {
   const [lives, setLives] = useState(START_LIVES)
   const [streak, setStreak] = useState(0)
   const [correctAnswers, setCorrectAnswers] = useState(0)
-  const [bestStreak, setBestStreak] = useState(() => getBest(STORAGE_KEY))
+  const [bestStreak, setBestStreak] = useState(() => getBest(storageKey))
   const [gameOver, setGameOver] = useState(false)
 
   async function startEra(e) {
@@ -71,6 +69,7 @@ export default function MoreOrLess() {
     setStreak(0)
     setCorrectAnswers(0)
     setGameOver(false)
+    setBestStreak(getBest(storageKey))
     await nextRound(e)
   }
 
@@ -79,7 +78,7 @@ export default function MoreOrLess() {
     setRevealed(false)
     setPicked(null)
     let pair = null
-    for (let i = 0; i < 5 && !pair; i++) pair = await fetchPair(e)
+    for (let i = 0; i < 5 && !pair; i++) pair = await fetchPair(tables, config, e)
     setRound(pair)
     setLoading(false)
   }
@@ -93,20 +92,20 @@ export default function MoreOrLess() {
       const nextStreak = streak + 1
       setStreak(nextStreak)
       setCorrectAnswers((c) => c + 1)
-      setBestStreak(setBestIfHigher(STORAGE_KEY, nextStreak))
+      setBestStreak(setBestIfHigher(storageKey, nextStreak))
     } else {
       setStreak(0)
       const remaining = lives - 1
       setLives(remaining)
-      if (remaining <= 0) {
-        setGameOver(true)
-      }
+      if (remaining <= 0) setGameOver(true)
     }
   }
 
+  const title = `More vs Less — ${SPORT_META[sport].label}`
+
   if (!era) {
     return (
-      <GameShell emoji="⚔️" title="More vs Less">
+      <GameShell emoji="⚔️" title={title}>
         <p className="mb-4 text-sm text-[var(--color-text-secondary)]">Pick an era to start an endless run.</p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ERAS.map((e) => (
@@ -126,7 +125,7 @@ export default function MoreOrLess() {
   if (gameOver) {
     const payload = { correctAnswers, bestStreak }
     return (
-      <GameShell emoji="⚔️" title="More vs Less">
+      <GameShell emoji="⚔️" title={title}>
         <p className="mb-4 text-center font-semibold">Out of lives! Final score: {correctAnswers} · Best streak 🔥{bestStreak}</p>
         <ShareResult text={buildShareText('more-or-less', todayStr(), payload)} />
         <button onClick={() => setEra(null)} className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 font-semibold">
@@ -137,7 +136,7 @@ export default function MoreOrLess() {
   }
 
   return (
-    <GameShell emoji="⚔️" title="More vs Less">
+    <GameShell emoji="⚔️" title={title}>
       <div className="mb-4 flex items-center justify-between text-sm">
         <span className="font-bold">{era.label}</span>
         <span>{'❤️'.repeat(lives)}</span>
