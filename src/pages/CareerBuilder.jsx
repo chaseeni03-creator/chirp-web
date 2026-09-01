@@ -19,6 +19,8 @@ const PLAYER_FIELDS = {
   nba: 'id, full_name, position',
 }
 
+const LEAGUE_PHRASE = { nfl: 'in the NFL', mlb: 'in MLB', nba: 'in the NBA' }
+
 const gradeBorder = {
   green: 'border-[var(--color-success)]',
   orange: 'border-[var(--color-warning)]',
@@ -36,6 +38,7 @@ export default function CareerBuilder() {
   const [player, setPlayer] = useState(null)
   const [config, setConfig] = useState(null)
   const [seasons, setSeasons] = useState([]) // 5, ascending chronological
+  const [totalSeasonsPlayed, setTotalSeasonsPlayed] = useState(0) // full career length, not just the 5 shown
   const [userOrder, setUserOrder] = useState([]) // userOrder[slot] = true chronological index
   const [step, setStep] = useState('ordering')
   const [grades, setGrades] = useState([])
@@ -111,6 +114,7 @@ export default function CareerBuilder() {
       setPlayer(p)
       setConfig(cfg)
       setSeasons(chosen)
+      setTotalSeasonsPlayed((allSeasons || []).length)
       setUserOrder(order)
       if (saved) {
         setStep(saved.step || 'ordering')
@@ -297,9 +301,17 @@ export default function CareerBuilder() {
   return shell(
     <>
       {step === 'ordering' && (
-        <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-          Put these 5 seasons in chronological order (earliest first). Use the arrows to reorder.
-        </p>
+        <>
+          <div className="mb-3 flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] px-3.5 py-2.5">
+            <span className="text-[var(--color-primary)]">📈</span>
+            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+              This player played {totalSeasonsPlayed} seasons {LEAGUE_PHRASE[sport]}
+            </p>
+          </div>
+          <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
+            Put these 5 seasons in chronological order (earliest first). Use the arrows to reorder.
+          </p>
+        </>
       )}
       {step === 'orderRevealed' && (
         <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
