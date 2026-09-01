@@ -132,7 +132,16 @@ const NBA_STAT_KEYS = ['points_per_game', 'rebounds_per_game', 'assists_per_game
 const NBA_LABELS = { points_per_game: 'PPG', rebounds_per_game: 'RPG', assists_per_game: 'APG', field_goal_percentage: 'FG%' }
 const NBA_PERCENT = new Set(['field_goal_percentage'])
 
-/** Everything a Career Builder page needs for one sport's mystery: stat keys, labels, formatter, and whether team is hidden until the final step. */
+/**
+ * Everything a Career Builder page needs for one sport's mystery: stat keys,
+ * labels, formatter. Team is always shown (whenever the season has one) at
+ * every step, for every difficulty — confirmed directly from the season
+ * card widgets (season_card.dart / mlb_season_card.dart / nba_season_card.dart),
+ * whose own doc comment says so explicitly: "Team name + colors always
+ * show (one mode, no hiding)." There is no per-step or per-difficulty team
+ * gating in Career Builder on mobile at all (unlike Progression, which
+ * genuinely does hide team in Hard mode).
+ */
 export function careerBuilderConfig(sport, groupOrPositionGroup) {
   if (sport === 'mlb') {
     const group = groupOrPositionGroup === 'Pitcher' ? 'pitcher' : 'batter'
@@ -141,7 +150,6 @@ export function careerBuilderConfig(sport, groupOrPositionGroup) {
       group,
       statKeys: keys,
       primaryKey: MLB_PRIMARY[group],
-      teamHiddenUntilFinal: true,
       labelFor: (k) => MLB_LABELS[k] || k,
       formatValue: (stats, k) => {
         const v = stats[k] ?? 0
@@ -156,7 +164,6 @@ export function careerBuilderConfig(sport, groupOrPositionGroup) {
       group: 'ALL',
       statKeys: NBA_STAT_KEYS,
       primaryKey: 'points_per_game',
-      teamHiddenUntilFinal: false,
       labelFor: (k) => NBA_LABELS[k] || k,
       formatValue: (stats, k) => {
         const v = stats[k] ?? 0
@@ -171,7 +178,6 @@ export function careerBuilderConfig(sport, groupOrPositionGroup) {
     group,
     statKeys: keys,
     primaryKey: NFL_PRIMARY[group],
-    teamHiddenUntilFinal: true,
     labelFor: (k) => NFL_LABELS[k] || k,
     formatValue: (stats, k) => {
       const v = stats[k] ?? 0

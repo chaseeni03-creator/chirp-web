@@ -227,7 +227,6 @@ export default function CareerBuilder() {
   }
 
   const revealSeason = step !== 'ordering'
-  const revealTeam = !config.teamHiddenUntilFinal || step === 'finalReveal'
 
   return shell(
     <>
@@ -264,10 +263,10 @@ export default function CareerBuilder() {
                     <p className="font-bold tabular-nums">{config.formatValue(s, key)}</p>
                   </div>
                 ))}
-                {revealTeam && (
+                {s.team && (
                   <div>
                     <p className="text-[10px] text-[var(--color-text-secondary)]">Team</p>
-                    <p className="font-bold">{s.team ?? '?'}</p>
+                    <p className="font-bold">{s.team}</p>
                   </div>
                 )}
               </div>
