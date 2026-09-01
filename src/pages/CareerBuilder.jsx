@@ -5,8 +5,8 @@ import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
 import { TABLES, SPORT_META, ERAS } from '../lib/sports'
 import {
-  scrambleOrder, gradeCareerBuilderOrder, scoreCareerBuilder, careerBuilderConfig,
-  fallbackFiveSeasons, nflGroupFor, GRADE_EMOJI,
+  scrambleOrder, gradeCareerBuilderOrder, gradeCareerBuilderOrderByTruePosition, scoreCareerBuilder, careerBuilderConfig,
+  fallbackFiveSeasons, nflGroupFor, careerArcSummary, GRADE_EMOJI,
 } from '../lib/careerBuilder'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
@@ -160,7 +160,7 @@ export default function CareerBuilder() {
     persist({ step: 'finalReveal', bonusAttempted: attempted, bonusCorrect: correct, guessedName: name })
 
     const result = {
-      grades: gradeCareerBuilderOrder(userOrder),
+      grades: gradeCareerBuilderOrderByTruePosition(userOrder),
       greenCount: s.greenCount,
       orderPoints: s.orderPoints,
       bonusAttempted: attempted,
@@ -168,6 +168,10 @@ export default function CareerBuilder() {
       bonusPoints: s.bonusPoints,
       totalScore: s.totalScore,
       playerName: player.full_name,
+      position: player.position,
+      group: config.group,
+      seasons, // ascending chronological, for the true-order final reveal
+      guessedName: name,
     }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, s.greenCount === 5)
@@ -212,15 +216,77 @@ export default function CareerBuilder() {
   if (error) return shell(<ErrorMsg message={error} />)
 
   if (finished) {
+    const finishedGroup = finished.group ?? config?.group
+    const finishedConfig = finishedGroup ? careerBuilderConfig(sport, finishedGroup) : config
+    const headline = finished.bonusCorrect ? '🎉 Bonus correct!' : finished.bonusAttempted ? '❌ Bonus missed' : "👀 Here's who it was"
+    const headlineColor = finished.bonusCorrect
+      ? 'text-[var(--color-success)]'
+      : finished.bonusAttempted
+        ? 'text-[var(--color-error)]'
+        : 'text-[var(--color-text-secondary)]'
     return shell(
       <>
-        <p className="mb-2 text-center font-semibold">
+        <div className="mb-3 border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
+          <p className={`text-sm font-bold ${headlineColor}`}>{headline}</p>
+          <p className="mt-0.5 text-lg font-bold">{finished.playerName}</p>
+          {finished.position && <p className="text-xs text-[var(--color-text-secondary)]">{finished.position}</p>}
+          {finished.bonusAttempted && !finished.bonusCorrect && finished.guessedName && (
+            <p className="mt-1 text-xs text-[var(--color-text-tertiary)]">You guessed: {finished.guessedName}</p>
+          )}
+        </div>
+
+        {!finished.bonusCorrect && finishedConfig && finished.seasons?.length === 5 && (
+          <div className="mb-3 flex items-start gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3">
+            <span className="text-[var(--color-warning)]">💡</span>
+            <p className="text-xs text-[var(--color-text-secondary)]">{careerArcSummary(finishedConfig, finished.seasons)}</p>
+          </div>
+        )}
+
+        {finishedConfig && finished.seasons?.length === 5 && (
+          <div className="mb-4 space-y-2">
+            {finished.seasons.map((s, i) => {
+              const grade = finished.grades[i]
+              return (
+                <div key={s.season} className={`border bg-[var(--color-surface)] p-3 ${grade ? gradeBorder[grade] : 'border-[var(--color-border)]'}`}>
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="font-bold text-[var(--color-text-secondary)]">{s.season}</span>
+                    {s.team && <span className="text-sm font-semibold">{s.team}</span>}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {finishedConfig.statKeys.map((key) => (
+                      <div key={key}>
+                        <p className="text-[10px] text-[var(--color-text-secondary)]">{finishedConfig.labelFor(key)}</p>
+                        <p className="font-bold tabular-nums">{finishedConfig.formatValue(s, key)}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 text-sm">
+          <p className="mb-2 text-xs font-bold tracking-wide text-[var(--color-text-tertiary)]">SCORE BREAKDOWN</p>
+          <div className="flex justify-between py-0.5">
+            <span className="text-[var(--color-text-secondary)]">Order accuracy</span>
+            <span className="font-bold">{finished.greenCount}/5 correct spots (+{finished.orderPoints})</span>
+          </div>
+          <div className="flex justify-between py-0.5">
+            <span className="text-[var(--color-text-secondary)]">Bonus guess</span>
+            <span className="font-bold">
+              {!finished.bonusAttempted ? 'Skipped' : finished.bonusCorrect ? `Correct ✓ (+${finished.bonusPoints})` : 'Missed ✗ (+0)'}
+            </span>
+          </div>
+          <div className="mt-2 flex justify-between border-t border-[var(--color-border)] pt-2 font-bold">
+            <span>Total</span>
+            <span className="text-[var(--color-warning)]">{finished.totalScore}/1000</span>
+          </div>
+        </div>
+
+        <p className="mb-2 text-center text-sm text-[var(--color-text-secondary)]">
           Order: {finished.grades.map((g) => GRADE_EMOJI[g]).join('')} {finished.greenCount}/5 correct
         </p>
-        <p className="mb-2 text-center text-sm text-[var(--color-text-secondary)]">
-          Player guess: {!finished.bonusAttempted ? '⏭️ Skipped' : finished.bonusCorrect ? '✅ Got it!' : `❌ Missed (${finished.playerName})`}
-        </p>
-        <p className="mb-4 text-center font-bold">Score: {finished.totalScore}/1000</p>
         <ShareResult text={buildShareText('career-builder', today, finished)} />
       </>
     )

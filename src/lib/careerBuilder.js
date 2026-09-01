@@ -88,6 +88,21 @@ export function scoreCareerBuilder(userOrder, bonusGuessCorrect) {
   return { greenCount, orderPoints, bonusCorrect: bonusGuessCorrect, bonusPoints, totalScore: orderPoints + bonusPoints }
 }
 
+/**
+ * Same grading as gradeCareerBuilderOrder, but indexed by true chronological
+ * position rather than by slot — used once the final reveal switches to
+ * showing seasons in their real (sorted) order: gradeCareerBuilderOrder tells
+ * you "the card I placed in this slot is right/close/wrong"; this tells you
+ * "the season that truly belongs at this position was placed right/close/
+ * wrong". Aggregate green/wrong counts are identical either way (same
+ * permutation viewed from its inverse) — only the per-card labeling differs.
+ */
+export function gradeCareerBuilderOrderByTruePosition(userOrder) {
+  const inverse = new Array(userOrder.length)
+  for (let i = 0; i < userOrder.length; i++) inverse[userOrder[i]] = i
+  return gradeCareerBuilderOrder(inverse)
+}
+
 export const GRADE_EMOJI = { green: '🟩', orange: '🟧', red: '🟥' }
 
 // ── Per-sport stat keys / formatting / reveal rules ─────────────────────────
@@ -190,4 +205,29 @@ export function careerBuilderConfig(sport, groupOrPositionGroup) {
 export function fallbackFiveSeasons(seasonsAscending) {
   if (seasonsAscending.length <= 5) return seasonsAscending
   return seasonsAscending.slice(seasonsAscending.length - 5)
+}
+
+/**
+ * One-line description of how the primary stat trended across the 5 shown
+ * seasons (ascending order) — shown on the "what was different" reveal when
+ * the player is guessed wrong.
+ */
+export function careerArcSummary(config, seasonsAscending) {
+  const key = config.primaryKey
+  const label = config.labelFor(key)
+  const values = seasonsAscending.map((s) => s[key] ?? 0)
+  const peakValue = Math.max(...values)
+  const peakIndex = values.indexOf(peakValue)
+  const first = values[0]
+  const last = values[values.length - 1]
+  if (peakIndex === values.length - 1 && last > first) {
+    return `${label} climbed every stretch, peaking in their final shown season.`
+  }
+  if (peakIndex === 0 && first > last) {
+    return `${label} peaked early, then trailed off in later seasons.`
+  }
+  if (peakIndex !== 0 && peakIndex !== values.length - 1) {
+    return `${label} peaked in the middle of this stretch — a classic rise-then-decline arc.`
+  }
+  return `${label} stayed fairly steady across these seasons — no clear rise or decline.`
 }

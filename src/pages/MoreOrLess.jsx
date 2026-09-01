@@ -187,9 +187,12 @@ export default function MoreOrLess() {
                 <button
                   key={e.key}
                   onClick={() => setEra(e.key)}
-                  className={`rounded-xl border py-3 font-bold ${era === e.key ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-[var(--color-border)] bg-[var(--color-surface)]'}`}
+                  className={`rounded-xl border py-3 text-center font-bold ${era === e.key ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' : 'border-[var(--color-border)] bg-[var(--color-surface)]'}`}
                 >
-                  {e.label}
+                  <span className="block">{e.label}</span>
+                  <span className="block text-[10px] font-normal text-[var(--color-text-tertiary)]">
+                    {e.range ? `${e.range[0]}-${e.range[1]}` : '∞'}
+                  </span>
                 </button>
               ))}
             </div>

@@ -15,31 +15,35 @@ export const SPORT_META = {
 // enums (lib/features/games/models/*_era.dart) — Stat Line, Career Builder, and
 // Progression all schedule a full era × difficulty matrix per day now, so the
 // web pages must let the player pick both, same as the admin schedules them.
+// rangeLabel matches each sport's *_era.dart rangeLabel exactly (shown as a
+// subtitle under the era name) — NFL has no separate 2020s bucket, so its
+// "2010s" era actually spans 2010-2025 (current data), not a clean decade;
+// without the subtitle that's not obvious from the label alone.
 export const ERAS = {
   nfl: [
-    { key: 'seventies', label: '1970s' },
-    { key: 'eighties', label: '1980s' },
-    { key: 'nineties', label: '1990s' },
-    { key: 'twoThousands', label: '2000s' },
-    { key: 'twentyTens', label: '2010s' },
-    { key: 'allTime', label: 'All Time' },
+    { key: 'seventies', label: '1970s', rangeLabel: '1970-1979' },
+    { key: 'eighties', label: '1980s', rangeLabel: '1980-1989' },
+    { key: 'nineties', label: '1990s', rangeLabel: '1989-1999' },
+    { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2012' },
+    { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2025' },
+    { key: 'allTime', label: 'All Time', rangeLabel: '∞' },
   ],
   mlb: [
-    { key: 'sixties', label: '1960s' },
-    { key: 'seventies', label: '1970s' },
-    { key: 'eighties', label: '1980s' },
-    { key: 'nineties', label: '1990s' },
-    { key: 'twoThousands', label: '2000s' },
-    { key: 'twentyTens', label: '2010s' },
-    { key: 'allTime', label: 'All Time' },
+    { key: 'sixties', label: '1960s', rangeLabel: '1960-1969' },
+    { key: 'seventies', label: '1970s', rangeLabel: '1970-1979' },
+    { key: 'eighties', label: '1980s', rangeLabel: '1980-1989' },
+    { key: 'nineties', label: '1990s', rangeLabel: '1990-1999' },
+    { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2009' },
+    { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2019' },
+    { key: 'allTime', label: 'All Time', rangeLabel: '∞' },
   ],
   nba: [
-    { key: 'eighties', label: '1980s' },
-    { key: 'nineties', label: '1990s' },
-    { key: 'twoThousands', label: '2000s' },
-    { key: 'twentyTens', label: '2010s' },
-    { key: 'twentyTwenties', label: '2020s' },
-    { key: 'allTime', label: 'All Time' },
+    { key: 'eighties', label: '1980s', rangeLabel: '1980-1989' },
+    { key: 'nineties', label: '1990s', rangeLabel: '1990-1999' },
+    { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2009' },
+    { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2019' },
+    { key: 'twentyTwenties', label: '2020s', rangeLabel: '2020-2026' },
+    { key: 'allTime', label: 'All Time', rangeLabel: '∞' },
   ],
 }
 

@@ -8,13 +8,18 @@ export default function EraSelector({ sport, value, onChange }) {
         <button
           key={e.key}
           onClick={() => onChange(e.key)}
-          className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-bold transition-colors ${
+          className={`shrink-0 rounded-full px-4 py-1.5 text-center text-sm font-bold transition-colors ${
             value === e.key
               ? 'bg-[var(--color-primary)] text-white'
               : 'border border-[var(--color-border)] bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
           }`}
         >
-          {e.label}
+          <span className="block">{e.label}</span>
+          {e.rangeLabel && (
+            <span className={`block text-[10px] font-normal ${value === e.key ? 'text-white/80' : 'text-[var(--color-text-tertiary)]'}`}>
+              {e.rangeLabel}
+            </span>
+          )}
         </button>
       ))}
     </div>
