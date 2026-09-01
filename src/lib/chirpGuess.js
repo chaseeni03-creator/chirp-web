@@ -19,25 +19,25 @@ export const CHIRP_GUESS_HEADERS = {
 // lib/core/constants/mlb_teams.dart and nba_teams.dart, aliases included so
 // historical/Retrosheet-style codes still resolve. ────────────────────────
 
-const MLB_TEAMS = {
-  NYY: { league: 'AL', division: 'AL East' }, BOS: { league: 'AL', division: 'AL East' },
-  TOR: { league: 'AL', division: 'AL East' }, TB: { league: 'AL', division: 'AL East' },
-  BAL: { league: 'AL', division: 'AL East' },
-  CWS: { league: 'AL', division: 'AL Central' }, CLE: { league: 'AL', division: 'AL Central' },
-  DET: { league: 'AL', division: 'AL Central' }, KC: { league: 'AL', division: 'AL Central' },
-  MIN: { league: 'AL', division: 'AL Central' },
-  HOU: { league: 'AL', division: 'AL West' }, LAA: { league: 'AL', division: 'AL West' },
-  OAK: { league: 'AL', division: 'AL West' }, SEA: { league: 'AL', division: 'AL West' },
-  TEX: { league: 'AL', division: 'AL West' },
-  ATL: { league: 'NL', division: 'NL East' }, MIA: { league: 'NL', division: 'NL East' },
-  NYM: { league: 'NL', division: 'NL East' }, PHI: { league: 'NL', division: 'NL East' },
-  WSH: { league: 'NL', division: 'NL East' },
-  CHC: { league: 'NL', division: 'NL Central' }, CIN: { league: 'NL', division: 'NL Central' },
-  MIL: { league: 'NL', division: 'NL Central' }, PIT: { league: 'NL', division: 'NL Central' },
-  STL: { league: 'NL', division: 'NL Central' },
-  ARI: { league: 'NL', division: 'NL West' }, COL: { league: 'NL', division: 'NL West' },
-  LAD: { league: 'NL', division: 'NL West' }, SD: { league: 'NL', division: 'NL West' },
-  SF: { league: 'NL', division: 'NL West' },
+export const MLB_TEAMS = {
+  NYY: { league: 'AL', division: 'AL East', fullName: 'New York Yankees' }, BOS: { league: 'AL', division: 'AL East', fullName: 'Boston Red Sox' },
+  TOR: { league: 'AL', division: 'AL East', fullName: 'Toronto Blue Jays' }, TB: { league: 'AL', division: 'AL East', fullName: 'Tampa Bay Rays' },
+  BAL: { league: 'AL', division: 'AL East', fullName: 'Baltimore Orioles' },
+  CWS: { league: 'AL', division: 'AL Central', fullName: 'Chicago White Sox' }, CLE: { league: 'AL', division: 'AL Central', fullName: 'Cleveland Guardians' },
+  DET: { league: 'AL', division: 'AL Central', fullName: 'Detroit Tigers' }, KC: { league: 'AL', division: 'AL Central', fullName: 'Kansas City Royals' },
+  MIN: { league: 'AL', division: 'AL Central', fullName: 'Minnesota Twins' },
+  HOU: { league: 'AL', division: 'AL West', fullName: 'Houston Astros' }, LAA: { league: 'AL', division: 'AL West', fullName: 'Los Angeles Angels' },
+  OAK: { league: 'AL', division: 'AL West', fullName: 'Oakland Athletics' }, SEA: { league: 'AL', division: 'AL West', fullName: 'Seattle Mariners' },
+  TEX: { league: 'AL', division: 'AL West', fullName: 'Texas Rangers' },
+  ATL: { league: 'NL', division: 'NL East', fullName: 'Atlanta Braves' }, MIA: { league: 'NL', division: 'NL East', fullName: 'Miami Marlins' },
+  NYM: { league: 'NL', division: 'NL East', fullName: 'New York Mets' }, PHI: { league: 'NL', division: 'NL East', fullName: 'Philadelphia Phillies' },
+  WSH: { league: 'NL', division: 'NL East', fullName: 'Washington Nationals' },
+  CHC: { league: 'NL', division: 'NL Central', fullName: 'Chicago Cubs' }, CIN: { league: 'NL', division: 'NL Central', fullName: 'Cincinnati Reds' },
+  MIL: { league: 'NL', division: 'NL Central', fullName: 'Milwaukee Brewers' }, PIT: { league: 'NL', division: 'NL Central', fullName: 'Pittsburgh Pirates' },
+  STL: { league: 'NL', division: 'NL Central', fullName: 'St. Louis Cardinals' },
+  ARI: { league: 'NL', division: 'NL West', fullName: 'Arizona Diamondbacks' }, COL: { league: 'NL', division: 'NL West', fullName: 'Colorado Rockies' },
+  LAD: { league: 'NL', division: 'NL West', fullName: 'Los Angeles Dodgers' }, SD: { league: 'NL', division: 'NL West', fullName: 'San Diego Padres' },
+  SF: { league: 'NL', division: 'NL West', fullName: 'San Francisco Giants' },
 }
 
 const MLB_TEAM_ALIASES = {
@@ -46,10 +46,14 @@ const MLB_TEAM_ALIASES = {
   CHN: 'CHC', SLN: 'STL', LAN: 'LAD', BRO: 'LAD', SDN: 'SD', SFN: 'SF', NYG: 'SF',
 }
 
-export function mlbResolveTeam(code) {
+export function mlbCanonicalCode(code) {
   if (!code) return null
-  const canon = MLB_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
-  return MLB_TEAMS[canon] || null
+  return MLB_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
+}
+
+export function mlbResolveTeam(code) {
+  const canon = mlbCanonicalCode(code)
+  return canon ? MLB_TEAMS[canon] || null : null
 }
 
 /** Every raw Lahman teamID belonging to the same franchise as `canonCode` — mlb_season_stats.team stores the raw code, never the modern one. */
@@ -69,25 +73,25 @@ export function mlbTeamCodesForScope(type, value) {
   return []
 }
 
-const NBA_TEAMS = {
-  BOS: { conference: 'Eastern', division: 'Atlantic' }, BRK: { conference: 'Eastern', division: 'Atlantic' },
-  NYK: { conference: 'Eastern', division: 'Atlantic' }, PHI: { conference: 'Eastern', division: 'Atlantic' },
-  TOR: { conference: 'Eastern', division: 'Atlantic' },
-  CHI: { conference: 'Eastern', division: 'Central' }, CLE: { conference: 'Eastern', division: 'Central' },
-  DET: { conference: 'Eastern', division: 'Central' }, IND: { conference: 'Eastern', division: 'Central' },
-  MIL: { conference: 'Eastern', division: 'Central' },
-  ATL: { conference: 'Eastern', division: 'Southeast' }, CHO: { conference: 'Eastern', division: 'Southeast' },
-  MIA: { conference: 'Eastern', division: 'Southeast' }, ORL: { conference: 'Eastern', division: 'Southeast' },
-  WAS: { conference: 'Eastern', division: 'Southeast' },
-  DEN: { conference: 'Western', division: 'Northwest' }, MIN: { conference: 'Western', division: 'Northwest' },
-  OKC: { conference: 'Western', division: 'Northwest' }, POR: { conference: 'Western', division: 'Northwest' },
-  UTA: { conference: 'Western', division: 'Northwest' },
-  GSW: { conference: 'Western', division: 'Pacific' }, LAC: { conference: 'Western', division: 'Pacific' },
-  LAL: { conference: 'Western', division: 'Pacific' }, PHO: { conference: 'Western', division: 'Pacific' },
-  SAC: { conference: 'Western', division: 'Pacific' },
-  DAL: { conference: 'Western', division: 'Southwest' }, HOU: { conference: 'Western', division: 'Southwest' },
-  MEM: { conference: 'Western', division: 'Southwest' }, NOP: { conference: 'Western', division: 'Southwest' },
-  SAS: { conference: 'Western', division: 'Southwest' },
+export const NBA_TEAMS = {
+  BOS: { conference: 'Eastern', division: 'Atlantic', fullName: 'Boston Celtics' }, BRK: { conference: 'Eastern', division: 'Atlantic', fullName: 'Brooklyn Nets' },
+  NYK: { conference: 'Eastern', division: 'Atlantic', fullName: 'New York Knicks' }, PHI: { conference: 'Eastern', division: 'Atlantic', fullName: 'Philadelphia 76ers' },
+  TOR: { conference: 'Eastern', division: 'Atlantic', fullName: 'Toronto Raptors' },
+  CHI: { conference: 'Eastern', division: 'Central', fullName: 'Chicago Bulls' }, CLE: { conference: 'Eastern', division: 'Central', fullName: 'Cleveland Cavaliers' },
+  DET: { conference: 'Eastern', division: 'Central', fullName: 'Detroit Pistons' }, IND: { conference: 'Eastern', division: 'Central', fullName: 'Indiana Pacers' },
+  MIL: { conference: 'Eastern', division: 'Central', fullName: 'Milwaukee Bucks' },
+  ATL: { conference: 'Eastern', division: 'Southeast', fullName: 'Atlanta Hawks' }, CHO: { conference: 'Eastern', division: 'Southeast', fullName: 'Charlotte Hornets' },
+  MIA: { conference: 'Eastern', division: 'Southeast', fullName: 'Miami Heat' }, ORL: { conference: 'Eastern', division: 'Southeast', fullName: 'Orlando Magic' },
+  WAS: { conference: 'Eastern', division: 'Southeast', fullName: 'Washington Wizards' },
+  DEN: { conference: 'Western', division: 'Northwest', fullName: 'Denver Nuggets' }, MIN: { conference: 'Western', division: 'Northwest', fullName: 'Minnesota Timberwolves' },
+  OKC: { conference: 'Western', division: 'Northwest', fullName: 'Oklahoma City Thunder' }, POR: { conference: 'Western', division: 'Northwest', fullName: 'Portland Trail Blazers' },
+  UTA: { conference: 'Western', division: 'Northwest', fullName: 'Utah Jazz' },
+  GSW: { conference: 'Western', division: 'Pacific', fullName: 'Golden State Warriors' }, LAC: { conference: 'Western', division: 'Pacific', fullName: 'Los Angeles Clippers' },
+  LAL: { conference: 'Western', division: 'Pacific', fullName: 'Los Angeles Lakers' }, PHO: { conference: 'Western', division: 'Pacific', fullName: 'Phoenix Suns' },
+  SAC: { conference: 'Western', division: 'Pacific', fullName: 'Sacramento Kings' },
+  DAL: { conference: 'Western', division: 'Southwest', fullName: 'Dallas Mavericks' }, HOU: { conference: 'Western', division: 'Southwest', fullName: 'Houston Rockets' },
+  MEM: { conference: 'Western', division: 'Southwest', fullName: 'Memphis Grizzlies' }, NOP: { conference: 'Western', division: 'Southwest', fullName: 'New Orleans Pelicans' },
+  SAS: { conference: 'Western', division: 'Southwest', fullName: 'San Antonio Spurs' },
 }
 
 const NBA_TEAM_ALIASES = {
@@ -98,10 +102,14 @@ const NBA_TEAM_ALIASES = {
   CHH: 'CHO', CHA: 'CHO', DNR: 'DEN', DLC: 'SAS', SAA: 'SAS',
 }
 
-export function nbaResolveTeam(code) {
+export function nbaCanonicalCode(code) {
   if (!code) return null
-  const canon = NBA_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
-  return NBA_TEAMS[canon] || null
+  return NBA_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
+}
+
+export function nbaResolveTeam(code) {
+  const canon = nbaCanonicalCode(code)
+  return canon ? NBA_TEAMS[canon] || null : null
 }
 
 /** Every raw historical code belonging to the same franchise as `canonCode` — nba_season_stats.team stores the raw per-era code. */

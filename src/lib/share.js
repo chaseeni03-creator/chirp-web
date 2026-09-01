@@ -72,11 +72,11 @@ export function buildShareText(gameKey, dateStr, payload) {
       return `${title} - ${date}\n${scopeLabel}\n\n${sectionALabel}:\n${a}\n\n${sectionBLabel}:\n${b}\n\nScore: ${scoreStr}/${maxScore} ${emoji}`
     }
     case 'grid': {
-      const { grid: cells, correctCount } = payload
-      const gridRows = [0, 1, 2]
-        .map((r) => [0, 1, 2].map((c) => (cells[r * 3 + c] ? '✅' : '❌')).join(''))
-        .join('\n')
-      return `🔢 Chirp Grid - ${date}\n${gridRows}\n${correctCount}/9 correct\nPlay free at ${SITE_URL}`
+      const { sport, grid: cells, totalScore } = payload
+      const gridRows = [0, 1, 2].map((r) => [0, 1, 2].map((c) => (cells[r * 3 + c] ? '✅' : '❌')).join('')).join('\n')
+      const emoji = sport === 'mlb' ? '⚾' : sport === 'nba' ? '🏀' : '🐦🏈'
+      const title = sport === 'mlb' ? 'MLB Chirp Grid' : sport === 'nba' ? 'NBA Chirp Grid' : 'Chirp Grid'
+      return `${title} - ${date}\n9/9 squares filled ${emoji}\n${gridRows}\nScore: ${totalScore} points`
     }
     default:
       return `Chirp Sports - ${date}\nPlay free at ${SITE_URL}`

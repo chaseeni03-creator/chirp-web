@@ -8,23 +8,23 @@ import { mlbResolveTeam, nbaResolveTeam } from './chirpGuess.js'
 // stored current conference/division — a player who switched conferences
 // mid-career gets the right clue for THAT season). ──────────────────────────
 
-const NFL_TEAMS = {
-  BUF: { conference: 'AFC', division: 'AFC East' }, MIA: { conference: 'AFC', division: 'AFC East' },
-  NE: { conference: 'AFC', division: 'AFC East' }, NYJ: { conference: 'AFC', division: 'AFC East' },
-  BAL: { conference: 'AFC', division: 'AFC North' }, CIN: { conference: 'AFC', division: 'AFC North' },
-  CLE: { conference: 'AFC', division: 'AFC North' }, PIT: { conference: 'AFC', division: 'AFC North' },
-  HOU: { conference: 'AFC', division: 'AFC South' }, IND: { conference: 'AFC', division: 'AFC South' },
-  JAX: { conference: 'AFC', division: 'AFC South' }, TEN: { conference: 'AFC', division: 'AFC South' },
-  DEN: { conference: 'AFC', division: 'AFC West' }, KC: { conference: 'AFC', division: 'AFC West' },
-  LV: { conference: 'AFC', division: 'AFC West' }, LAC: { conference: 'AFC', division: 'AFC West' },
-  DAL: { conference: 'NFC', division: 'NFC East' }, NYG: { conference: 'NFC', division: 'NFC East' },
-  PHI: { conference: 'NFC', division: 'NFC East' }, WAS: { conference: 'NFC', division: 'NFC East' },
-  CHI: { conference: 'NFC', division: 'NFC North' }, DET: { conference: 'NFC', division: 'NFC North' },
-  GB: { conference: 'NFC', division: 'NFC North' }, MIN: { conference: 'NFC', division: 'NFC North' },
-  ATL: { conference: 'NFC', division: 'NFC South' }, CAR: { conference: 'NFC', division: 'NFC South' },
-  NO: { conference: 'NFC', division: 'NFC South' }, TB: { conference: 'NFC', division: 'NFC South' },
-  ARI: { conference: 'NFC', division: 'NFC West' }, LA: { conference: 'NFC', division: 'NFC West' },
-  SF: { conference: 'NFC', division: 'NFC West' }, SEA: { conference: 'NFC', division: 'NFC West' },
+export const NFL_TEAMS = {
+  BUF: { conference: 'AFC', division: 'AFC East', fullName: 'Buffalo Bills' }, MIA: { conference: 'AFC', division: 'AFC East', fullName: 'Miami Dolphins' },
+  NE: { conference: 'AFC', division: 'AFC East', fullName: 'New England Patriots' }, NYJ: { conference: 'AFC', division: 'AFC East', fullName: 'New York Jets' },
+  BAL: { conference: 'AFC', division: 'AFC North', fullName: 'Baltimore Ravens' }, CIN: { conference: 'AFC', division: 'AFC North', fullName: 'Cincinnati Bengals' },
+  CLE: { conference: 'AFC', division: 'AFC North', fullName: 'Cleveland Browns' }, PIT: { conference: 'AFC', division: 'AFC North', fullName: 'Pittsburgh Steelers' },
+  HOU: { conference: 'AFC', division: 'AFC South', fullName: 'Houston Texans' }, IND: { conference: 'AFC', division: 'AFC South', fullName: 'Indianapolis Colts' },
+  JAX: { conference: 'AFC', division: 'AFC South', fullName: 'Jacksonville Jaguars' }, TEN: { conference: 'AFC', division: 'AFC South', fullName: 'Tennessee Titans' },
+  DEN: { conference: 'AFC', division: 'AFC West', fullName: 'Denver Broncos' }, KC: { conference: 'AFC', division: 'AFC West', fullName: 'Kansas City Chiefs' },
+  LV: { conference: 'AFC', division: 'AFC West', fullName: 'Las Vegas Raiders' }, LAC: { conference: 'AFC', division: 'AFC West', fullName: 'Los Angeles Chargers' },
+  DAL: { conference: 'NFC', division: 'NFC East', fullName: 'Dallas Cowboys' }, NYG: { conference: 'NFC', division: 'NFC East', fullName: 'New York Giants' },
+  PHI: { conference: 'NFC', division: 'NFC East', fullName: 'Philadelphia Eagles' }, WAS: { conference: 'NFC', division: 'NFC East', fullName: 'Washington Commanders' },
+  CHI: { conference: 'NFC', division: 'NFC North', fullName: 'Chicago Bears' }, DET: { conference: 'NFC', division: 'NFC North', fullName: 'Detroit Lions' },
+  GB: { conference: 'NFC', division: 'NFC North', fullName: 'Green Bay Packers' }, MIN: { conference: 'NFC', division: 'NFC North', fullName: 'Minnesota Vikings' },
+  ATL: { conference: 'NFC', division: 'NFC South', fullName: 'Atlanta Falcons' }, CAR: { conference: 'NFC', division: 'NFC South', fullName: 'Carolina Panthers' },
+  NO: { conference: 'NFC', division: 'NFC South', fullName: 'New Orleans Saints' }, TB: { conference: 'NFC', division: 'NFC South', fullName: 'Tampa Bay Buccaneers' },
+  ARI: { conference: 'NFC', division: 'NFC West', fullName: 'Arizona Cardinals' }, LA: { conference: 'NFC', division: 'NFC West', fullName: 'Los Angeles Rams' },
+  SF: { conference: 'NFC', division: 'NFC West', fullName: 'San Francisco 49ers' }, SEA: { conference: 'NFC', division: 'NFC West', fullName: 'Seattle Seahawks' },
 }
 const NFL_TEAM_ALIASES = { AZ: 'ARI', GNB: 'GB', KAN: 'KC', LVR: 'LV', LAR: 'LA', NOR: 'NO', NWE: 'NE', SFO: 'SF', TAM: 'TB', JAC: 'JAX', HTX: 'HOU', CLT: 'IND' }
 function nflCanonicalCode(code) {
@@ -35,6 +35,8 @@ export function nflResolveTeam(code) {
   const c = nflCanonicalCode(code)
   return c ? NFL_TEAMS[c] || null : null
 }
+
+export { nflCanonicalCode }
 
 /** Team/division/conference -> the nfl_season_stats.team codes that scope covers (used by The Lineup). */
 export function nflTeamCodesForScope(type, value) {

@@ -189,23 +189,9 @@ export const MORE_OR_LESS_CONFIG = {
 // here — the old hardcoded lists above had a wrong MLB column (walks instead
 // of runs) and fabricated NBA categories that don't exist on mobile.
 
-// ── Chirp Grid: team -> league/division lookups for the 'league'/'division' ─
-// category types (these are real-world facts, not derived from any column).
-
-export const MLB_TEAM_LEAGUE = {
-  BAL: 'AL', BOS: 'AL', NYY: 'AL', TBR: 'AL', TOR: 'AL',
-  CHW: 'AL', CLE: 'AL', DET: 'AL', KCR: 'AL', MIN: 'AL',
-  HOU: 'AL', LAA: 'AL', OAK: 'AL', SEA: 'AL', TEX: 'AL',
-  ATL: 'NL', MIA: 'NL', NYM: 'NL', PHI: 'NL', WSN: 'NL',
-  CHC: 'NL', CIN: 'NL', MIL: 'NL', PIT: 'NL', STL: 'NL',
-  ARI: 'NL', COL: 'NL', LAD: 'NL', SDP: 'NL', SFG: 'NL',
-}
-
-export const NBA_TEAM_DIVISION = {
-  BOS: 'Atlantic', BRK: 'Atlantic', NYK: 'Atlantic', PHI: 'Atlantic', TOR: 'Atlantic',
-  CHI: 'Central', CLE: 'Central', DET: 'Central', IND: 'Central', MIL: 'Central',
-  ATL: 'Southeast', CHA: 'Southeast', MIA: 'Southeast', ORL: 'Southeast', WAS: 'Southeast',
-  DEN: 'Northwest', MIN: 'Northwest', OKC: 'Northwest', POR: 'Northwest', UTA: 'Northwest',
-  GSW: 'Pacific', LAC: 'Pacific', LAL: 'Pacific', PHX: 'Pacific', SAC: 'Pacific',
-  DAL: 'Southwest', HOU: 'Southwest', MEM: 'Southwest', NOP: 'Southwest', SAS: 'Southwest',
-}
+// Chirp Grid's team/division/league/conference lookups now live in
+// src/lib/grid.js, reusing the same MLB_TEAMS/NBA_TEAMS tables ported for
+// Chirp Guess and Stat Line — the lookups that used to live here had wrong
+// team codes for several franchises (TBR instead of TB, WSN instead of WSH,
+// PHX instead of PHO, CHA instead of CHO), so every category involving those
+// teams silently never matched.
