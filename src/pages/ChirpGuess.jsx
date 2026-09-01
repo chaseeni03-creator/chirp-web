@@ -137,7 +137,7 @@ export default function ChirpGuess() {
               {row.tiles.map((t, j) => (
                 <div
                   key={j}
-                  className={`flex flex-col items-center justify-center border py-2 text-[10px] font-bold ${tileColor[t.state]}`}
+                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold ${tileColor[t.state]}`}
                   title={attrs[j].label}
                 >
                   <span>{attrs[j].label}</span>

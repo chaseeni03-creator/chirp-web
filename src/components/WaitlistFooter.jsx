@@ -25,7 +25,7 @@ export default function WaitlistFooter() {
   return (
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-5xl px-4 py-8">
-        <div className="border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
           <p className="text-lg font-bold">📱 Chirp Sports Mobile App</p>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Coming soon to iOS and Android
@@ -43,12 +43,12 @@ export default function WaitlistFooter() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@email.com"
-                className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)]"
+                className="min-w-0 flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)]"
               />
               <button
                 type="submit"
                 disabled={status === 'loading'}
-                className="shrink-0 rounded-lg bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                className="shrink-0 rounded-xl bg-[var(--color-primary)] px-5 py-2.5 text-sm font-bold text-white disabled:opacity-60"
               >
                 {status === 'loading' ? '...' : 'Notify Me'}
               </button>

@@ -100,7 +100,7 @@ export default function Progression() {
 
   const shell = (body) => (
     <GameShell emoji="⏩" title={title}>
-      <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+      <div className="mb-4 flex overflow-hidden rounded-xl border border-[var(--color-border)]">
         {['medium', 'hard'].map((d) => (
           <button
             key={d}
@@ -147,7 +147,7 @@ export default function Progression() {
 
       <div className="mt-6 space-y-2">
         {visible.map((s, i) => (
-          <div key={s.id} className="flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <div key={s.id} className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <span className="font-bold">Year {i + 1}</span>
             <span className="text-sm text-[var(--color-text-secondary)]">{s.team}</span>
             <span className="font-bold tabular-nums">

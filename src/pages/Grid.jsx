@@ -192,7 +192,7 @@ export default function Grid() {
         <p className="mb-4 text-center font-semibold">{finished.correctCount}/9 correct!</p>
         <div className="mx-auto grid max-w-xs grid-cols-3 gap-1.5">
           {finished.grid.map((ok, i) => (
-            <div key={i} className={`aspect-square text-center text-2xl leading-[3rem] ${ok ? 'bg-[var(--color-success)]/15' : 'bg-[var(--color-primary)]/15'}`}>
+            <div key={i} className={`aspect-square rounded-lg text-center text-2xl leading-[3rem] ${ok ? 'bg-[var(--color-success)]/15' : 'bg-[var(--color-primary)]/15'}`}>
               {ok ? '✅' : '❌'}
             </div>
           ))}
@@ -212,21 +212,21 @@ export default function Grid() {
             <tr>
               <th></th>
               {[0, 1, 2].map((j) => (
-                <th key={j} className="w-32 bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">{colVal(j)}</th>
+                <th key={j} className="w-32 rounded-lg bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">{colVal(j)}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {[0, 1, 2].map((i) => (
               <tr key={i}>
-                <th className="w-24 bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">{rowVal(i)}</th>
+                <th className="w-24 rounded-lg bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">{rowVal(i)}</th>
                 {[0, 1, 2].map((j) => {
                   const index = i * 3 + j
                   const cell = cells[index]
                   return (
-                    <td key={j} className="w-32 border border-[var(--color-border)] bg-[var(--color-surface)] p-1 align-top">
+                    <td key={j} className="w-32 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 align-top">
                       {cell ? (
-                        <div className={`flex h-16 flex-col items-center justify-center text-xs font-semibold ${cell.correct ? 'text-[var(--color-success)]' : 'text-[var(--color-primary)]'}`}>
+                        <div className={`flex h-16 flex-col items-center justify-center rounded text-xs font-semibold ${cell.correct ? 'text-[var(--color-success)]' : 'text-[var(--color-primary)]'}`}>
                           <span>{cell.correct ? '✅' : '❌'}</span>
                           <span className="mt-1 px-1 text-center">{cell.name}</span>
                         </div>
