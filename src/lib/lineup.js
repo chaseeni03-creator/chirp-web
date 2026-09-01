@@ -107,16 +107,46 @@ export function lineupTeamCodes(sport, scope) {
   return nbaTeamCodesForScope(scope.type, scope.value)
 }
 
+/**
+ * PostgREST's default response cap silently truncates a `.select()` to
+ * 1,000 rows with no guaranteed order — a real, confirmed bug for MLB/NBA
+ * Lineup: a single division over a decade routinely exceeds it (e.g. NL
+ * East 2020s is 1,647 mlb_season_stats rows), so real players were
+ * silently dropped from leaderboards depending on arbitrary row order
+ * (caught live: Kyle Schwarber's 187 home runs across 2022-2025 missing
+ * entirely from "2020s NL East" because his rows fell outside whatever
+ * first-1,000 slice came back). Mobile's mlb_lineup_service.dart /
+ * nba_lineup_service.dart have this exact same unpaginated fetch — this
+ * is a real bug there too, not something introduced by this port — but
+ * it's unambiguously wrong (mangles real leaderboards) rather than a
+ * design choice, so it's fixed here rather than replicated. Pages through
+ * in batches of 1,000 until a short page ends it, the same pattern the
+ * NFL/MLB/NBA era-pool services already use for their own base queries.
+ */
+async function fetchAllRows(table, select, applyFilters) {
+  const all = []
+  const pageSize = 1000
+  let from = 0
+  while (true) {
+    let q = supabase.from(table).select(select)
+    if (applyFilters) q = applyFilters(q)
+    const { data, error } = await q.range(from, from + pageSize - 1)
+    if (error || !data) break
+    all.push(...data)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return all
+}
+
 // ── Leaderboards ─────────────────────────────────────────────────────────
 
 /**
  * NFL is aggregated server-side via the `lineup_top_leaders` RPC (SUM/GROUP BY
- * in Postgres), not fetched raw and summed client-side — a wide scope (a
- * division/conference over a decade) can match well over 1,000
- * nfl_season_stats rows, and PostgREST's default response cap silently
- * truncates raw row fetches to 1,000 with no guaranteed order. MLB/NBA sum
- * client-side, matching mobile's own (unoptimized, but real) implementation
- * for those two sports.
+ * in Postgres), not fetched raw and summed client-side. MLB/NBA fetch raw
+ * rows and sum client-side (matching mobile's architecture for those two
+ * sports) but paginate through fetchAllRows above rather than trusting a
+ * single `.select()` — see that function's comment for why.
  */
 export async function getTopLeaders(sport, tables, category, scope, time, limit = 3) {
   const [start, end] = lineupTimeRange(time)
@@ -139,13 +169,9 @@ export async function getTopLeaders(sport, tables, category, scope, time, limit 
   const columns = isPercent ? `${category.column}, ${category.attemptColumn}` : category.column
   const playerRelation = tables.players === 'mlb_players' || tables.players === 'nba_players' ? tables.players : null
   const nameCols = category.modernOnly ? 'full_name, era_modern' : 'full_name'
-  const { data, error } = await supabase
-    .from(tables.seasonStats)
-    .select(`player_id, ${columns}, ${playerRelation}(${nameCols})`)
-    .in('team', teamCodes)
-    .gte('season', start)
-    .lte('season', end)
-  if (error || !data) return []
+  const data = await fetchAllRows(tables.seasonStats, `player_id, ${columns}, ${playerRelation}(${nameCols})`, (q) =>
+    q.in('team', teamCodes).gte('season', start).lte('season', end)
+  )
 
   const totals = new Map()
   const attempted = new Map()
