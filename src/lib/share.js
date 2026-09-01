@@ -6,9 +6,9 @@ function friendlyDate(dateStr) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-/** tiles: array of 'correct' | 'close' | 'wrong' per guess, one row per guess. */
+/** tiles: array of { color: 'green'|'orange'|'grey' } per guess, one row per guess. */
 function tileRow(tiles) {
-  return tiles.map((t) => (t === 'correct' ? '🟩' : t === 'close' ? '🟨' : '⬛')).join('')
+  return tiles.map((t) => (t.color === 'green' ? '🟩' : t.color === 'orange' ? '🟨' : '⬛')).join('')
 }
 
 export function buildShareText(gameKey, dateStr, payload) {
@@ -26,10 +26,11 @@ export function buildShareText(gameKey, dateStr, payload) {
       return `📊 Stat Line - ${date}\n${won ? `Solved in ${cluesUsed}/${maxClues} clues!` : `X/${maxClues}`}\nPlay free at ${SITE_URL}`
     }
     case 'career-builder': {
-      const { orderScore, maxOrderScore, guessedPlayer } = payload
-      return `📈 Career Builder - ${date}\nOrder: ${orderScore}/${maxOrderScore}${
-        guessedPlayer ? ' + player bonus!' : ''
-      }\nPlay free at ${SITE_URL}`
+      const { grades, greenCount, bonusAttempted, bonusCorrect, totalScore } = payload
+      const gradeEmoji = { green: '🟩', orange: '🟧', red: '🟥' }
+      const order = grades.map((g) => gradeEmoji[g]).join('')
+      const bonus = !bonusAttempted ? '⏭️ Skipped' : bonusCorrect ? '✅ Got it!' : '❌ Missed'
+      return `📈 Career Builder - ${date}\nOrder: ${order} ${greenCount}/5 correct\nPlayer guess: ${bonus}\nScore: ${totalScore}/1000\nPlay free at ${SITE_URL}`
     }
     case 'progression': {
       const { won, seasonsRevealed, difficulty } = payload
