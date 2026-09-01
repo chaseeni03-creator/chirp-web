@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 export default function WaitlistFooter() {
@@ -61,8 +62,12 @@ export default function WaitlistFooter() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-[var(--color-text-tertiary)]">
-          © {new Date().getFullYear()} Chirp Sports. Not affiliated with the NFL.
+        <div className="mt-6 flex justify-center gap-4 text-xs text-[var(--color-text-secondary)]">
+          <Link to="/privacy" className="hover:text-[var(--color-text)]">Privacy Policy</Link>
+          <Link to="/terms" className="hover:text-[var(--color-text)]">Terms of Service</Link>
+        </div>
+        <p className="mt-3 text-center text-xs text-[var(--color-text-tertiary)]">
+          © {new Date().getFullYear()} Chirp Sports. Not affiliated with the NFL, MLB, or NBA.
         </p>
       </div>
     </footer>

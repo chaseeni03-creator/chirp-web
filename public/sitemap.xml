@@ -8,4 +8,6 @@
   <url><loc>https://playchirpsports.com/moreorless</loc><priority>0.8</priority></url>
   <url><loc>https://playchirpsports.com/lineup</loc><priority>0.8</priority></url>
   <url><loc>https://playchirpsports.com/grid</loc><priority>0.8</priority></url>
+  <url><loc>https://playchirpsports.com/privacy</loc><priority>0.3</priority></url>
+  <url><loc>https://playchirpsports.com/terms</loc><priority>0.3</priority></url>
 </urlset>
