@@ -166,7 +166,7 @@ export default function CareerBuilder() {
 
       <div className="space-y-2">
         {cards.map((c, i) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <div key={c.id} className="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <span className="w-5 shrink-0 text-center font-bold text-[var(--color-text-secondary)]">{i + 1}</span>
             <div className="flex flex-1 gap-4">
               {displayKeys.map(([key, label]) => (
@@ -177,8 +177,8 @@ export default function CareerBuilder() {
               ))}
             </div>
             <div className="flex flex-col gap-1">
-              <button onClick={() => move(i, -1)} disabled={i === 0} className="h-6 w-6 rounded bg-[var(--color-elevated)] text-xs disabled:opacity-30">▲</button>
-              <button onClick={() => move(i, 1)} disabled={i === cards.length - 1} className="h-6 w-6 rounded bg-[var(--color-elevated)] text-xs disabled:opacity-30">▼</button>
+              <button onClick={() => move(i, -1)} disabled={i === 0} className="h-6 w-6 bg-[var(--color-elevated)] text-xs disabled:opacity-30">▲</button>
+              <button onClick={() => move(i, 1)} disabled={i === cards.length - 1} className="h-6 w-6 bg-[var(--color-elevated)] text-xs disabled:opacity-30">▼</button>
             </div>
           </div>
         ))}
@@ -190,7 +190,7 @@ export default function CareerBuilder() {
         {guess && <p className="mt-2 text-sm">Guessed: <span className="font-semibold">{guess.full_name}</span></p>}
       </div>
 
-      <button onClick={submit} className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white">
+      <button onClick={submit} className="mt-6 w-full rounded-lg bg-[var(--color-primary)] py-3 font-bold text-white">
         Submit Order
       </button>
     </GameShell>

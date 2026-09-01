@@ -137,7 +137,7 @@ export default function StatLine() {
 
   return (
     <GameShell emoji="📊" title={title}>
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
+      <div className="mb-4 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
         <span className="font-bold">{sport === 'mlb' ? player.position_group : player.position}</span>
         <span className="text-sm text-[var(--color-text-secondary)]">{season} Season</span>
       </div>
@@ -148,7 +148,7 @@ export default function StatLine() {
           return (
             <div
               key={key}
-              className={`rounded-xl border p-3 ${
+              className={`border p-3 ${
                 isRevealed ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)]'
               }`}
             >
@@ -163,7 +163,7 @@ export default function StatLine() {
         <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
-          className="mt-3 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
+          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
         >
           Skip (reveal next clue)
         </button>

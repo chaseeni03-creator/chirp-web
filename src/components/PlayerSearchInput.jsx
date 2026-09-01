@@ -56,10 +56,10 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
         }}
         onFocus={() => setOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)] disabled:opacity-50"
+        className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 text-sm text-[var(--color-text)] placeholder-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-primary)] disabled:opacity-50"
       />
       {open && results.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
+        <div className="absolute z-10 mt-1 w-full overflow-hidden rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl">
           {results.map((p) => (
             <button
               key={p.id}

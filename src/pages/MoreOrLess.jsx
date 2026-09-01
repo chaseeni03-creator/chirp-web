@@ -112,7 +112,7 @@ export default function MoreOrLess() {
             <button
               key={e.key}
               onClick={() => startEra(e)}
-              className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] py-3 font-bold hover:border-[var(--color-primary)]/50"
+              className="border border-[var(--color-border)] bg-[var(--color-surface)] py-3 font-bold hover:border-[var(--color-primary)]/50"
             >
               {e.label}
             </button>
@@ -128,7 +128,7 @@ export default function MoreOrLess() {
       <GameShell emoji="⚔️" title={title}>
         <p className="mb-4 text-center font-semibold">Out of lives! Final score: {correctAnswers} · Best streak 🔥{bestStreak}</p>
         <ShareResult text={buildShareText('more-or-less', todayStr(), payload)} />
-        <button onClick={() => setEra(null)} className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 font-semibold">
+        <button onClick={() => setEra(null)} className="mt-4 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 font-semibold">
           Pick a different era
         </button>
       </GameShell>
@@ -157,7 +157,7 @@ export default function MoreOrLess() {
                   key={side}
                   onClick={() => handlePick(side)}
                   disabled={revealed}
-                  className={`rounded-2xl border p-4 text-center transition-colors ${
+                  className={`border p-4 text-center transition-colors ${
                     revealed
                       ? isPicked
                         ? p.value >= round[side === 'a' ? 'b' : 'a'].value
@@ -176,7 +176,7 @@ export default function MoreOrLess() {
           </div>
 
           {revealed && (
-            <button onClick={() => nextRound(era)} className="mt-4 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white">
+            <button onClick={() => nextRound(era)} className="mt-4 w-full rounded-lg bg-[var(--color-primary)] py-3 font-bold text-white">
               Next Matchup
             </button>
           )}

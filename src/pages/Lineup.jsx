@@ -133,7 +133,7 @@ export default function Lineup() {
         {Object.keys(leaders).length > 0 && (
           <div className="mt-6 space-y-3">
             {categories.map(([key, label]) => (
-              <div key={key} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <div key={key} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
                 <p className="mb-1 text-xs font-bold text-[var(--color-text-secondary)]">{label}</p>
                 {(leaders[key] || []).map((l, i) => (
                   <p key={l.playerId} className="text-sm">
@@ -154,7 +154,7 @@ export default function Lineup() {
 
   return (
     <GameShell emoji="📋" title={title}>
-      <p className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold">
+      <p className="mb-4 border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold">
         {scopeLabel}
       </p>
 
@@ -171,7 +171,7 @@ export default function Lineup() {
       <button
         onClick={lockIn}
         disabled={revealing}
-        className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white disabled:opacity-60"
+        className="mt-6 w-full rounded-lg bg-[var(--color-primary)] py-3 font-bold text-white disabled:opacity-60"
       >
         {revealing ? 'Revealing…' : 'Lock In Lineup'}
       </button>

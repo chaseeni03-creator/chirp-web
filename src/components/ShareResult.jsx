@@ -11,11 +11,11 @@ export default function ShareResult({ text }) {
   }
 
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
+    <div className="border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
       <pre className="whitespace-pre-wrap font-mono text-sm text-[var(--color-text)]">{text}</pre>
       <button
         onClick={handleCopy}
-        className="mt-3 w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white"
+        className="mt-3 w-full rounded-full bg-[var(--color-primary)] py-3 text-sm font-bold text-white"
       >
         {copied ? 'Copied!' : 'Copy Result'}
       </button>
