@@ -162,7 +162,7 @@ export default function MoreOrLess() {
 
   if (phase === 'start') {
     return (
-      <GameShell emoji="⚔️" title={title}>
+      <GameShell emoji="⚔️" title={title} howToPlay="more-or-less">
         <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
           Two players. One stat. Who had more? The winner keeps going until they lose. Build your streak before you run out of lives.
         </p>
@@ -237,7 +237,7 @@ export default function MoreOrLess() {
       { name: result.currentChampionName, rounds: result.currentChampionRounds }
     )
     return (
-      <GameShell emoji="⚔️" title={title}>
+      <GameShell emoji="⚔️" title={title} howToPlay="more-or-less">
         <p className="mb-1 text-center text-2xl font-black">{result.score} pts</p>
         <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">Out of lives!</p>
         <div className="mb-4 grid grid-cols-2 gap-3">
@@ -268,7 +268,7 @@ export default function MoreOrLess() {
 
   // playing
   return (
-    <GameShell emoji="⚔️" title={title}>
+    <GameShell emoji="⚔️" title={title} howToPlay="more-or-less">
       <div className="mb-4 flex items-center justify-between text-sm">
         <span>{'❤️'.repeat(lives)}{'🖤'.repeat(MAX_LIVES - lives)}</span>
         <span className="text-[var(--color-warning)]">🔥 {streak}</span>

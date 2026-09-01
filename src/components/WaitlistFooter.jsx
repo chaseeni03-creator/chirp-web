@@ -27,7 +27,7 @@ export default function WaitlistFooter() {
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
-          <p className="text-lg font-bold">📱 Chirp Sports Mobile App</p>
+          <p className="text-lg font-bold">🦜 Chirp Sports Mobile App</p>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Coming soon to iOS and Android
           </p>
@@ -65,6 +65,12 @@ export default function WaitlistFooter() {
         <div className="mt-6 flex justify-center gap-4 text-xs text-[var(--color-text-secondary)]">
           <Link to="/privacy" className="hover:text-[var(--color-text)]">Privacy Policy</Link>
           <Link to="/terms" className="hover:text-[var(--color-text)]">Terms of Service</Link>
+        </div>
+        <div className="mt-4 flex items-center justify-center gap-1.5">
+          <span className="text-xl">🦜</span>
+          <span className="text-sm font-extrabold">
+            <span className="text-[var(--color-primary)]">Chirp</span> Sports
+          </span>
         </div>
         <p className="mt-3 text-center text-xs text-[var(--color-text-tertiary)]">
           © {new Date().getFullYear()} Chirp Sports. Not affiliated with the NFL, MLB, or NBA.

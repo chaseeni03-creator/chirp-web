@@ -97,12 +97,12 @@ export default function ChirpGuess() {
 
   const title = `Chirp Guess — ${SPORT_META[sport].label}`
 
-  if (loading) return <GameShell emoji="🎯" title={title}><Loading /></GameShell>
-  if (error) return <GameShell emoji="🎯" title={title}><ErrorMsg message={error} /></GameShell>
+  if (loading) return <GameShell emoji="🎯" title={title} howToPlay="chirp-guess"><Loading /></GameShell>
+  if (error) return <GameShell emoji="🎯" title={title} howToPlay="chirp-guess"><ErrorMsg message={error} /></GameShell>
 
   if (finished) {
     return (
-      <GameShell emoji="🎯" title={title}>
+      <GameShell emoji="🎯" title={title} howToPlay="chirp-guess">
         <p className="mb-4 text-center font-semibold">
           {finished.won ? `Solved in ${finished.guessCount}/${MAX_GUESSES}! 🎉` : "Didn't get it today."}
         </p>
@@ -112,7 +112,7 @@ export default function ChirpGuess() {
   }
 
   return (
-    <GameShell emoji="🎯" title={title}>
+    <GameShell emoji="🎯" title={title} howToPlay="chirp-guess">
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
         Guess {"today's"} mystery {SPORT_META[sport].label} player. {MAX_GUESSES - rows.length} guesses left.
       </p>

@@ -131,12 +131,12 @@ export default function Lineup() {
 
   const title = `The Lineup — ${SPORT_META[sport].label}`
 
-  if (loading) return <GameShell emoji="📋" title={title}><Loading /></GameShell>
-  if (error) return <GameShell emoji="📋" title={title}><ErrorMsg message={error} /></GameShell>
+  if (loading) return <GameShell emoji="📋" title={title} howToPlay="lineup"><Loading /></GameShell>
+  if (error) return <GameShell emoji="📋" title={title} howToPlay="lineup"><ErrorMsg message={error} /></GameShell>
 
   if (finished) {
     return (
-      <GameShell emoji="📋" title={title}>
+      <GameShell emoji="📋" title={title} howToPlay="lineup">
         <p className="mb-1 text-center text-sm font-bold text-[var(--color-text-tertiary)]">{finished.scopeLabel}</p>
         <p className="mb-4 text-center text-2xl font-black">{finished.totalScore.toLocaleString()} pts</p>
         <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm">
@@ -183,7 +183,7 @@ export default function Lineup() {
   const visibleCategories = sections ? categories.filter((c) => c.section === sections[tab].key) : categories
 
   return (
-    <GameShell emoji="📋" title={title}>
+    <GameShell emoji="📋" title={title} howToPlay="lineup">
       <p className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold">
         {lineupScopeTimeLabel(scope, time)}
       </p>

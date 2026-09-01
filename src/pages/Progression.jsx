@@ -162,7 +162,7 @@ export default function Progression() {
   const title = `The Progression — ${SPORT_META[sport].label}`
 
   const shell = (body) => (
-    <GameShell emoji="⏩" title={title}>
+    <GameShell emoji="⏩" title={title} howToPlay="progression">
       <EraSelector sport={sport} value={era} onChange={setEra} />
       <div className="mb-2 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
         {['medium', 'hard'].map((d) => (

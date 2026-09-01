@@ -204,7 +204,7 @@ export default function StatLine() {
   const title = `Stat Line — ${SPORT_META[sport].label}`
 
   const shell = (body) => (
-    <GameShell emoji="📊" title={title}>
+    <GameShell emoji="📊" title={title} howToPlay="stat-line">
       <EraSelector sport={sport} value={era} onChange={setEra} />
       <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
         {['normal', 'hard'].map((d) => (

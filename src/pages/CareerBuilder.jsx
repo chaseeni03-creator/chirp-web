@@ -197,7 +197,7 @@ export default function CareerBuilder() {
   const title = `Career Builder — ${SPORT_META[sport].label}`
 
   const shell = (body) => (
-    <GameShell emoji="📈" title={title}>
+    <GameShell emoji="📈" title={title} howToPlay="career-builder">
       <EraSelector sport={sport} value={era} onChange={setEra} />
       <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
         {['normal', 'hard'].map((d) => (

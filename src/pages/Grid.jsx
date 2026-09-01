@@ -90,12 +90,12 @@ export default function Grid() {
 
   const title = `Chirp Grid — ${SPORT_META[sport].label}`
 
-  if (loading) return <GameShell emoji="🔢" title={title}><Loading /></GameShell>
-  if (error) return <GameShell emoji="🔢" title={title}><ErrorMsg message={error} /></GameShell>
+  if (loading) return <GameShell emoji="🔢" title={title} howToPlay="grid"><Loading /></GameShell>
+  if (error) return <GameShell emoji="🔢" title={title} howToPlay="grid"><ErrorMsg message={error} /></GameShell>
 
   if (finished) {
     return (
-      <GameShell emoji="🔢" title={title}>
+      <GameShell emoji="🔢" title={title} howToPlay="grid">
         <p className="mb-4 text-center font-semibold">
           {finished.correctCount === 9 ? '🏆 Perfect Grid!' : '✅ Complete!'} {finished.correctCount}/9 · {finished.totalScore} pts
         </p>
@@ -114,14 +114,14 @@ export default function Grid() {
   }
 
   return (
-    <GameShell emoji="🔢" title={title}>
+    <GameShell emoji="🔢" title={title} howToPlay="grid">
       <div className="overflow-x-auto">
-        <table className="mx-auto border-separate border-spacing-1.5">
+        <table className="mx-auto border-separate border-spacing-1 sm:border-spacing-1.5">
           <thead>
             <tr>
               <th></th>
               {[0, 1, 2].map((j) => (
-                <th key={j} className="w-32 rounded-lg bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">
+                <th key={j} className="w-[90px] rounded-lg bg-[var(--color-elevated)] px-1 py-1.5 text-[10px] font-bold sm:w-32 sm:px-2 sm:py-2 sm:text-xs">
                   {gridCategoryLabel(sport, colCat(j), colVal(j))}
                 </th>
               ))}
@@ -130,21 +130,21 @@ export default function Grid() {
           <tbody>
             {[0, 1, 2].map((i) => (
               <tr key={i}>
-                <th className="w-24 rounded-lg bg-[var(--color-elevated)] px-2 py-2 text-xs font-bold">
+                <th className="w-14 rounded-lg bg-[var(--color-elevated)] px-1 py-1.5 text-[10px] font-bold sm:w-24 sm:px-2 sm:py-2 sm:text-xs">
                   {gridCategoryLabel(sport, rowCat(i), rowVal(i))}
                 </th>
                 {[0, 1, 2].map((j) => {
                   const index = i * 3 + j
                   const cell = cells[index]
                   return (
-                    <td key={j} className="w-32 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 align-top">
+                    <td key={j} className="w-[90px] rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-0.5 align-top sm:w-32 sm:p-1">
                       {cell ? (
-                        <div className={`flex h-16 flex-col items-center justify-center rounded text-xs font-semibold ${cell.correct ? 'text-[var(--color-success)]' : 'text-[var(--color-primary)]'}`}>
+                        <div className={`flex h-14 flex-col items-center justify-center rounded text-[10px] font-semibold sm:h-16 sm:text-xs ${cell.correct ? 'text-[var(--color-success)]' : 'text-[var(--color-primary)]'}`}>
                           <span>{cell.correct ? '✅' : '❌'}</span>
                           <span className="mt-1 px-1 text-center">{cell.name}</span>
                         </div>
                       ) : (
-                        <div className="flex h-16 items-center">
+                        <div className="flex h-14 items-center sm:h-16">
                           <PlayerSearchInput table={tables.players} onSelect={(p) => handlePick(index, p)} placeholder="Player…" disabled={checking !== null} />
                         </div>
                       )}

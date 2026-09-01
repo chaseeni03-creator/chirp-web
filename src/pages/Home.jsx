@@ -28,18 +28,18 @@ export default function Home() {
         description={`Free daily ${meta.label} games: Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, The Lineup, and Chirp Grid.`}
       />
 
-      <div className="mb-8 text-center">
-        <div className="mb-2 flex items-center justify-center gap-2 text-3xl font-black tracking-tight">
-          <span>🐦</span>
+      <div className="mb-6 text-center sm:mb-8">
+        <div className="mb-2 flex items-center justify-center gap-2 text-2xl font-black tracking-tight sm:text-3xl">
+          <span>🦜</span>
           <span>
             <span className="text-[var(--color-primary)]">Chirp</span> Sports
           </span>
         </div>
-        <p className="text-[var(--color-text-secondary)]">Daily Sports Games. Free.</p>
-        <p className="mt-1 text-sm font-bold text-[var(--color-primary)]">{meta.gamesTitle}</p>
+        <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">Daily Sports Games. Free.</p>
+        <p className="mt-1 text-xs font-bold text-[var(--color-primary)] sm:text-sm">{meta.gamesTitle}</p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {games.map((g) => (
           <GameCard key={g.key} game={g} sportLabel={meta.label} completed={completed[g.key]} />
         ))}
