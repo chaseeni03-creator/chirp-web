@@ -1,0 +1,7 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/((?!assets/|favicon.svg|icons.svg|robots.txt|sitemap.xml).*)", "destination": "/index.html" }
+  ]
+}
