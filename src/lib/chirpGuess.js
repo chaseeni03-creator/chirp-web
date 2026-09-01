@@ -46,7 +46,7 @@ const MLB_TEAM_ALIASES = {
   CHN: 'CHC', SLN: 'STL', LAN: 'LAD', BRO: 'LAD', SDN: 'SD', SFN: 'SF', NYG: 'SF',
 }
 
-function mlbResolveTeam(code) {
+export function mlbResolveTeam(code) {
   if (!code) return null
   const canon = MLB_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
   return MLB_TEAMS[canon] || null
@@ -81,7 +81,7 @@ const NBA_TEAM_ALIASES = {
   CHH: 'CHO', CHA: 'CHO', DNR: 'DEN', DLC: 'SAS', SAA: 'SAS',
 }
 
-function nbaResolveTeam(code) {
+export function nbaResolveTeam(code) {
   if (!code) return null
   const canon = NBA_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
   return NBA_TEAMS[canon] || null
