@@ -3,10 +3,11 @@ import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
-import { TABLES, CAREER_STAT_CONFIG, SPORT_META } from '../lib/sports'
+import { TABLES, CAREER_STAT_CONFIG, SPORT_META, ERAS } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import EraSelector from '../components/EraSelector'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -19,6 +20,7 @@ export default function Progression() {
   const tables = TABLES[sport]
   const config = CAREER_STAT_CONFIG[sport]
 
+  const [era, setEra] = useState(ERAS[sport][0].key)
   const [difficulty, setDifficulty] = useState('medium')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -27,7 +29,12 @@ export default function Progression() {
   const [revealed, setRevealed] = useState(1)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
-  const gameKey = `${sport}-progression-${difficulty}`
+  const gameKey = `${sport}-progression-${era}-${difficulty}`
+
+  useEffect(() => {
+    if (!ERAS[sport].some((e) => e.key === era)) setEra(ERAS[sport][0].key)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
 
   useEffect(() => {
     let cancelled = false
@@ -49,11 +56,12 @@ export default function Progression() {
         .from(tables.progressionDaily)
         .select('player_id')
         .eq('game_date', today)
+        .eq('era', era)
         .eq('difficulty', difficulty)
         .maybeSingle()
       if (dailyErr || !daily) {
         if (!cancelled) {
-          setError(`No ${difficulty === 'hard' ? 'Hard' : 'Normal'} mode puzzle scheduled for today.`)
+          setError(`No ${difficulty === 'hard' ? 'Hard' : 'Normal'} mode puzzle scheduled for this era today.`)
           setLoading(false)
         }
         return
@@ -76,7 +84,7 @@ export default function Progression() {
     return () => {
       cancelled = true
     }
-  }, [today, sport, difficulty, gameKey, tables.progressionDaily, tables.players, tables.seasonStats])
+  }, [today, sport, era, difficulty, gameKey, tables.progressionDaily, tables.players, tables.seasonStats])
 
   function finish(won) {
     const result = { won, seasonsRevealed: revealed, difficulty: difficulty === 'hard' ? 'Hard' : 'Normal', playerName: player.full_name }
@@ -100,7 +108,8 @@ export default function Progression() {
 
   const shell = (body) => (
     <GameShell emoji="⏩" title={title}>
-      <div className="mb-4 flex overflow-hidden rounded-xl border border-[var(--color-border)]">
+      <EraSelector sport={sport} value={era} onChange={setEra} />
+      <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
         {['medium', 'hard'].map((d) => (
           <button
             key={d}
@@ -147,7 +156,7 @@ export default function Progression() {
 
       <div className="mt-6 space-y-2">
         {visible.map((s, i) => (
-          <div key={s.id} className="flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <div key={s.id} className="flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <span className="font-bold">Year {i + 1}</span>
             <span className="text-sm text-[var(--color-text-secondary)]">{s.team}</span>
             <span className="font-bold tabular-nums">

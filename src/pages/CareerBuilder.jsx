@@ -3,10 +3,11 @@ import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
-import { TABLES, CAREER_STAT_CONFIG, SPORT_META } from '../lib/sports'
+import { TABLES, CAREER_STAT_CONFIG, SPORT_META, ERAS } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import EraSelector from '../components/EraSelector'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -46,10 +47,11 @@ function shuffle(arr) {
 
 export default function CareerBuilder() {
   const { sport } = useSport()
-  const gameKey = `${sport}-career-builder`
   const tables = TABLES[sport]
   const config = CAREER_STAT_CONFIG[sport]
 
+  const [era, setEra] = useState(ERAS[sport][0].key)
+  const [difficulty, setDifficulty] = useState('normal')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [player, setPlayer] = useState(null)
@@ -57,6 +59,12 @@ export default function CareerBuilder() {
   const [guess, setGuess] = useState(null)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
+  const gameKey = `${sport}-career-builder-${era}-${difficulty}`
+
+  useEffect(() => {
+    if (!ERAS[sport].some((e) => e.key === era)) setEra(ERAS[sport][0].key)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
 
   useEffect(() => {
     let cancelled = false
@@ -77,12 +85,14 @@ export default function CareerBuilder() {
 
       const { data: daily, error: dailyErr } = await supabase
         .from(tables.careerBuilderDaily)
-        .select('player_id, difficulty, selected_seasons')
+        .select('player_id, selected_seasons')
         .eq('game_date', today)
+        .eq('era', era)
+        .eq('difficulty', difficulty)
         .maybeSingle()
       if (dailyErr || !daily) {
         if (!cancelled) {
-          setError('No Career Builder puzzle scheduled for today.')
+          setError('No Career Builder puzzle scheduled for this era/difficulty today.')
           setLoading(false)
         }
         return
@@ -114,7 +124,7 @@ export default function CareerBuilder() {
     return () => {
       cancelled = true
     }
-  }, [today, sport, gameKey, tables.careerBuilderDaily, tables.players, tables.seasonStats, config])
+  }, [today, sport, era, difficulty, gameKey, tables.careerBuilderDaily, tables.players, tables.seasonStats, config])
 
   function move(index, dir) {
     const next = [...cards]
@@ -141,32 +151,52 @@ export default function CareerBuilder() {
 
   const title = `Career Builder — ${SPORT_META[sport].label}`
 
-  if (loading) return <GameShell emoji="📈" title={title}><Loading /></GameShell>
-  if (error) return <GameShell emoji="📈" title={title}><ErrorMsg message={error} /></GameShell>
+  const shell = (body) => (
+    <GameShell emoji="📈" title={title}>
+      <EraSelector sport={sport} value={era} onChange={setEra} />
+      <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+        {['normal', 'hard'].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDifficulty(d)}
+            className={`flex-1 py-2 text-sm font-bold ${
+              difficulty === d ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-elevated)] text-[var(--color-text-tertiary)]'
+            }`}
+          >
+            {d === 'hard' ? 'HARD' : 'NORMAL'}
+          </button>
+        ))}
+      </div>
+      {body}
+    </GameShell>
+  )
+
+  if (loading) return shell(<Loading />)
+  if (error) return shell(<ErrorMsg message={error} />)
 
   if (finished) {
-    return (
-      <GameShell emoji="📈" title={title}>
+    return shell(
+      <>
         <p className="mb-4 text-center font-semibold">
           {finished.correctPositions}/5 seasons in the right order
           {finished.guessedPlayer ? ' — and you guessed the player! 🎉' : `. Player: ${finished.playerName}`}
         </p>
         <ShareResult text={buildShareText('career-builder', today, finished)} />
-      </GameShell>
+      </>
     )
   }
 
   const displayKeys = config.display[player.group]
 
-  return (
-    <GameShell emoji="📈" title={title}>
+  return shell(
+    <>
       <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
         Put these 5 seasons in chronological order (earliest first). Use the arrows to reorder.
       </p>
 
       <div className="space-y-2">
         {cards.map((c, i) => (
-          <div key={c.id} className="flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+          <div key={c.id} className="flex items-center gap-3 border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
             <span className="w-5 shrink-0 text-center font-bold text-[var(--color-text-secondary)]">{i + 1}</span>
             <div className="flex flex-1 gap-4">
               {displayKeys.map(([key, label]) => (
@@ -177,8 +207,8 @@ export default function CareerBuilder() {
               ))}
             </div>
             <div className="flex flex-col gap-1">
-              <button onClick={() => move(i, -1)} disabled={i === 0} className="h-6 w-6 rounded bg-[var(--color-elevated)] text-xs disabled:opacity-30">▲</button>
-              <button onClick={() => move(i, 1)} disabled={i === cards.length - 1} className="h-6 w-6 rounded bg-[var(--color-elevated)] text-xs disabled:opacity-30">▼</button>
+              <button onClick={() => move(i, -1)} disabled={i === 0} className="h-6 w-6 bg-[var(--color-elevated)] text-xs disabled:opacity-30">▲</button>
+              <button onClick={() => move(i, 1)} disabled={i === cards.length - 1} className="h-6 w-6 bg-[var(--color-elevated)] text-xs disabled:opacity-30">▼</button>
             </div>
           </div>
         ))}
@@ -190,9 +220,9 @@ export default function CareerBuilder() {
         {guess && <p className="mt-2 text-sm">Guessed: <span className="font-semibold">{guess.full_name}</span></p>}
       </div>
 
-      <button onClick={submit} className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white">
+      <button onClick={submit} className="mt-6 w-full rounded-lg bg-[var(--color-primary)] py-3 font-bold text-white">
         Submit Order
       </button>
-    </GameShell>
+    </>
   )
 }

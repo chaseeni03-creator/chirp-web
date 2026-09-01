@@ -3,10 +3,11 @@ import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
-import { TABLES, STAT_LINE_CONFIG, SPORT_META } from '../lib/sports'
+import { TABLES, STAT_LINE_CONFIG, SPORT_META, ERAS } from '../lib/sports'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import EraSelector from '../components/EraSelector'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -16,10 +17,11 @@ const PLAYER_FIELDS = {
 
 export default function StatLine() {
   const { sport } = useSport()
-  const gameKey = `${sport}-stat-line`
   const tables = TABLES[sport]
   const config = STAT_LINE_CONFIG[sport]
 
+  const [era, setEra] = useState(ERAS[sport][0].key)
+  const [difficulty, setDifficulty] = useState('normal')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [player, setPlayer] = useState(null)
@@ -29,6 +31,13 @@ export default function StatLine() {
   const [wrongGuesses, setWrongGuesses] = useState(0)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
+  const gameKey = `${sport}-stat-line-${era}-${difficulty}`
+
+  useEffect(() => {
+    // era list changes when sport changes — keep the selection valid
+    if (!ERAS[sport].some((e) => e.key === era)) setEra(ERAS[sport][0].key)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sport])
 
   useEffect(() => {
     let cancelled = false
@@ -52,10 +61,12 @@ export default function StatLine() {
         .from(tables.statLineDaily)
         .select('player_id, season')
         .eq('game_date', today)
+        .eq('era', era)
+        .eq('pool_difficulty', difficulty)
         .maybeSingle()
       if (dailyErr || !daily) {
         if (!cancelled) {
-          setError('No Stat Line puzzle scheduled for today.')
+          setError('No Stat Line puzzle scheduled for this era/difficulty today.')
           setLoading(false)
         }
         return
@@ -82,7 +93,7 @@ export default function StatLine() {
     return () => {
       cancelled = true
     }
-  }, [today, sport, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
+  }, [today, sport, era, difficulty, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
 
   const group = player ? config.groupFor(sport === 'mlb' ? player.position_group : player.position) : null
   const clues = group ? config.clues[group] : []
@@ -121,23 +132,43 @@ export default function StatLine() {
 
   const title = `Stat Line — ${SPORT_META[sport].label}`
 
-  if (loading) return <GameShell emoji="📊" title={title}><Loading /></GameShell>
-  if (error) return <GameShell emoji="📊" title={title}><ErrorMsg message={error} /></GameShell>
+  const shell = (body) => (
+    <GameShell emoji="📊" title={title}>
+      <EraSelector sport={sport} value={era} onChange={setEra} />
+      <div className="mb-4 flex overflow-hidden rounded-lg border border-[var(--color-border)]">
+        {['normal', 'hard'].map((d) => (
+          <button
+            key={d}
+            onClick={() => setDifficulty(d)}
+            className={`flex-1 py-2 text-sm font-bold ${
+              difficulty === d ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-elevated)] text-[var(--color-text-tertiary)]'
+            }`}
+          >
+            {d === 'hard' ? 'HARD' : 'NORMAL'}
+          </button>
+        ))}
+      </div>
+      {body}
+    </GameShell>
+  )
+
+  if (loading) return shell(<Loading />)
+  if (error) return shell(<ErrorMsg message={error} />)
 
   if (finished) {
-    return (
-      <GameShell emoji="📊" title={title}>
+    return shell(
+      <>
         <p className="mb-4 text-center font-semibold">
           {finished.won ? `Solved in ${finished.cluesUsed}/${finished.maxClues} clues! 🎉` : `The answer was ${player?.full_name ?? 'unknown'}.`}
         </p>
         <ShareResult text={buildShareText('stat-line', today, finished)} />
-      </GameShell>
+      </>
     )
   }
 
-  return (
-    <GameShell emoji="📊" title={title}>
-      <div className="mb-4 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
+  return shell(
+    <>
+      <div className="mb-4 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
         <span className="font-bold">{sport === 'mlb' ? player.position_group : player.position}</span>
         <span className="text-sm text-[var(--color-text-secondary)]">{season} Season</span>
       </div>
@@ -148,7 +179,7 @@ export default function StatLine() {
           return (
             <div
               key={key}
-              className={`rounded-xl border p-3 ${
+              className={`border p-3 ${
                 isRevealed ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)]'
               }`}
             >
@@ -163,11 +194,11 @@ export default function StatLine() {
         <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
-          className="mt-3 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
+          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
         >
           Skip (reveal next clue)
         </button>
       </div>
-    </GameShell>
+    </>
   )
 }

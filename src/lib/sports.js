@@ -11,6 +11,38 @@ export const SPORT_META = {
   nba: { label: 'NBA', emoji: '🏀', gamesTitle: 'Daily NBA Games' },
 }
 
+// Era keys/labels, mirrored exactly from the Flutter app's NflEra/MlbEra/NbaEra
+// enums (lib/features/games/models/*_era.dart) — Stat Line, Career Builder, and
+// Progression all schedule a full era × difficulty matrix per day now, so the
+// web pages must let the player pick both, same as the admin schedules them.
+export const ERAS = {
+  nfl: [
+    { key: 'seventies', label: '1970s' },
+    { key: 'eighties', label: '1980s' },
+    { key: 'nineties', label: '1990s' },
+    { key: 'twoThousands', label: '2000s' },
+    { key: 'twentyTens', label: '2010s' },
+    { key: 'allTime', label: 'All Time' },
+  ],
+  mlb: [
+    { key: 'sixties', label: '1960s' },
+    { key: 'seventies', label: '1970s' },
+    { key: 'eighties', label: '1980s' },
+    { key: 'nineties', label: '1990s' },
+    { key: 'twoThousands', label: '2000s' },
+    { key: 'twentyTens', label: '2010s' },
+    { key: 'allTime', label: 'All Time' },
+  ],
+  nba: [
+    { key: 'eighties', label: '1980s' },
+    { key: 'nineties', label: '1990s' },
+    { key: 'twoThousands', label: '2000s' },
+    { key: 'twentyTens', label: '2010s' },
+    { key: 'twentyTwenties', label: '2020s' },
+    { key: 'allTime', label: 'All Time' },
+  ],
+}
+
 export const TABLES = {
   nfl: {
     chirpGuessDaily: 'chirp_guess_daily',
