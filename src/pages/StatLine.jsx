@@ -23,6 +23,7 @@ const PLAYER_FIELDS = {
 
 const META_LABELS = {
   '@conference': (m) => ({ label: 'Conference', value: m.seasonConference ?? 'Unknown' }),
+  '@league': (m) => ({ label: 'League', value: m.seasonConference ?? 'Unknown' }), // MLB's clue order uses '@league'; buildMlbMystery stores it under seasonConference
   '@division': (m) => ({ label: 'Division', value: m.seasonDivision ?? 'Unknown' }),
   '@season': (m) => ({ label: 'Season', value: String(m.season) }),
   '@team': (m) => ({ label: 'Team', value: m.team ?? 'Unknown' }),
@@ -152,15 +153,28 @@ export default function StatLine() {
     setFinished(result)
   }
 
+  // A wrong guess/skip made WHILE ALREADY at the last clue tier ends the
+  // game right there — but reaching that tier in the first place (the
+  // guess that advances revealed up to maxClues) does not: the player
+  // still gets one more guess with team+teammate visible, exactly like
+  // mobile's currentClue/maxClues check in stat_line_screen.dart's
+  // _submitGuess/_skip. Ending the game the moment revealed hit maxClues
+  // (the old behavior here) meant team/teammate always appeared one guess
+  // too late to ever be used.
   async function handleSkip() {
-    const next = Math.min(revealed + 1, mystery.clueSteps.length)
     const nextWrong = [...wrongGuesses, 'Skipped']
     setWrongGuesses(nextWrong)
-    setRevealed(next)
     setHints(new Set())
+
+    if (revealed >= mystery.clueSteps.length) {
+      persist(revealed, nextWrong, teammates)
+      finish(false, revealed, teammates)
+      return
+    }
+    const next = revealed + 1
+    setRevealed(next)
     const nextTeammates = await maybeLoadTeammates(next, nextWrong)
     persist(next, nextWrong, nextTeammates)
-    if (next >= mystery.clueSteps.length) finish(false, next, nextTeammates)
   }
 
   async function handleGuess(guessedPlayer) {
@@ -173,13 +187,18 @@ export default function StatLine() {
       const { data: full } = await supabase.from(tables.players).select(NFL_HINT_PLAYER_FIELDS).eq('id', guessedPlayer.id).single()
       setHints(nflHintsAgainst(mystery, mysteryPlayer, full || guessedPlayer))
     }
-    const next = Math.min(revealed + 1, mystery.clueSteps.length)
     const nextWrong = [...wrongGuesses, guessedPlayer.full_name]
     setWrongGuesses(nextWrong)
+
+    if (revealed >= mystery.clueSteps.length) {
+      persist(revealed, nextWrong, teammates)
+      finish(false, revealed, teammates)
+      return
+    }
+    const next = revealed + 1
     setRevealed(next)
     const nextTeammates = await maybeLoadTeammates(next, nextWrong)
     persist(next, nextWrong, nextTeammates)
-    if (next >= mystery.clueSteps.length) finish(false, next, nextTeammates)
   }
 
   const title = `Stat Line — ${SPORT_META[sport].label}`
