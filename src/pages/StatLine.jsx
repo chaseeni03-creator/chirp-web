@@ -276,6 +276,20 @@ export default function StatLine() {
         </div>
       )}
 
+      {/* Deviates from mobile on purpose: mobile fetches the teammate the
+          moment the last clue tier is reached but only ever displays it in
+          the post-game result banner, so it's never actually usable for the
+          final guess. Showing it live here (once you're at the last clue
+          tier, before that final guess) makes the hint functional instead of
+          a pure "here's what you missed" consolation. */}
+      {teammates.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
+            Teammate that season: <span className="text-[var(--color-text)]">{teammates[0]}</span>
+          </span>
+        </div>
+      )}
+
       {hints.size > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {[...hints].map((h) => (
