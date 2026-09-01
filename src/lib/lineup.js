@@ -38,6 +38,11 @@ export const LINEUP_CATEGORIES = {
       key: 'field_goal_percentage', label: 'Field Goal %', shareLabel: 'FG%',
       column: 'field_goals_made', attemptColumn: 'field_goals_attempted', agg: 'weightedPercent', modernOnly: true,
     },
+    // Web-only addition beyond mobile's 6-category NBA Lineup, added by
+    // request — nba_season_stats/nba_career_stats both carry a real
+    // three_pointers_made column (verified against Stephen Curry's actual
+    // career total).
+    { key: 'three_pointers_made', label: '3-Pointers Made', shareLabel: '3PM', column: 'three_pointers_made', agg: 'sum' },
   ],
 }
 
@@ -52,7 +57,8 @@ export function lineupMaxBaseScore(sport) {
 }
 
 export function lineupMaxTotalScore(sport) {
-  return sport === 'nba' ? 3300 : 4600
+  // NBA: 7 categories x 300 (2,100) + allTop3 (500) + allFirst (1,000) = 3,600.
+  return sport === 'nba' ? 3600 : 4600
 }
 
 export function lineupPointsForRank(rank) {
