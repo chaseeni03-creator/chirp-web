@@ -141,12 +141,37 @@ export function shortLabel(stat) {
 
 // ── Random stat picker (mirrors _randomStat) ───────────────────────────────
 
+/**
+ * PostgREST caps a `.select()` at 1,000 rows by default with no guaranteed
+ * order — nfl_/mlb_/nba_season_stats all have far more rows than that
+ * (nfl_season_stats alone is ~90,000), so an unpaginated fetch here would
+ * silently sample only an arbitrary ~1,000-row slice of season history
+ * instead of the real range, biasing which years ever get picked for a
+ * season-scope matchup (the same failure mode found and fixed in The
+ * Lineup's leaderboards — mobile's who_had_more_service.dart /
+ * mlb_who_had_more_service.dart / nba_who_had_more_service.dart have this
+ * identical unpaginated query, so it's a real bug there too). Paginated in
+ * 1,000-row pages via .range() until a short page ends it.
+ */
 const availableSeasonsCache = {}
+
+async function fetchAllSeasonValues(table) {
+  const years = new Set()
+  const pageSize = 1000
+  let from = 0
+  while (true) {
+    const { data, error } = await supabase.from(table).select('season').range(from, from + pageSize - 1)
+    if (error || !data) break
+    for (const r of data) years.add(r.season)
+    if (data.length < pageSize) break
+    from += pageSize
+  }
+  return years
+}
 
 async function availableSeasons(sport, tables) {
   if (availableSeasonsCache[sport]) return availableSeasonsCache[sport]
-  const { data } = await supabase.from(tables.seasonStats).select('season')
-  const years = [...new Set((data || []).map((r) => r.season))].sort((a, b) => a - b)
+  const years = [...(await fetchAllSeasonValues(tables.seasonStats))].sort((a, b) => a - b)
   availableSeasonsCache[sport] = years
   return years
 }
