@@ -33,10 +33,14 @@ export function buildShareText(gameKey, dateStr, payload) {
       return `📈 Career Builder - ${date}\nOrder: ${order} ${greenCount}/5 correct\nPlayer guess: ${bonus}\nScore: ${totalScore}/1000\nPlay free at ${SITE_URL}`
     }
     case 'progression': {
-      const { won, seasonsRevealed, difficulty } = payload
-      return `⏩ The Progression (${difficulty}) - ${date}\n${
-        won ? `Solved after ${seasonsRevealed} season${seasonsRevealed === 1 ? '' : 's'}!` : 'Not solved'
-      }\nPlay free at ${SITE_URL}`
+      const { sport, guessedCorrectly, seasonsRevealed, wrongGuesses, finalScore, difficultyLabel } = payload
+      const result = guessedCorrectly
+        ? `Guessed after Year ${seasonsRevealed}!`
+        : `Didn't guess it — revealed all ${seasonsRevealed} years`
+      const emoji = sport === 'mlb' ? '⚾' : sport === 'nba' ? '🏀' : '🐦🏈'
+      const title = sport === 'mlb' ? 'MLB The Progression' : sport === 'nba' ? 'NBA The Progression' : 'The Progression'
+      const modeLine = sport === 'nfl' ? `Mode: ${difficultyLabel} 📈\n` : ''
+      return `${title} - ${date}\n${modeLine}${result}\nWrong guesses: ${wrongGuesses}\nScore: ${finalScore}/1000 ${emoji}\nCan you beat me?`
     }
     case 'more-or-less': {
       const { correctAnswers, bestStreak } = payload
