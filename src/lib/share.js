@@ -1,4 +1,5 @@
 import { LINEUP_CATEGORIES } from './lineup'
+import { buildMoreOrLessShareText } from './moreOrLess'
 
 export const SITE_URL = 'playchirpsports.com'
 
@@ -45,8 +46,7 @@ export function buildShareText(gameKey, dateStr, payload) {
       return `${title} - ${date}\n${modeLine}${result}\nWrong guesses: ${wrongGuesses}\nScore: ${finalScore}/1000 ${emoji}\nCan you beat me?`
     }
     case 'more-or-less': {
-      const { correctAnswers, bestStreak } = payload
-      return `⚔️ More vs Less - ${date}\nScore: ${correctAnswers} · Best streak: 🔥${bestStreak}\nPlay free at ${SITE_URL}`
+      return `${buildMoreOrLessShareText(payload.sport, date, payload)}\nPlay free at ${SITE_URL}`
     }
     case 'lineup': {
       const { sport, scopeLabel, guessesByKey, totalScore, maxScore } = payload

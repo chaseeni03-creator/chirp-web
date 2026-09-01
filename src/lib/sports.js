@@ -160,29 +160,11 @@ export const CAREER_STAT_CONFIG = {
   },
 }
 
-// ── More vs Less: one comparable career stat per sport ──────────────────────
-
-export const MORE_OR_LESS_CONFIG = {
-  nfl: {
-    groups: {
-      QB: { positions: ['QB'], statKey: 'passing_yards', label: 'Career Passing Yards' },
-      RB: { positions: ['RB', 'FB'], statKey: 'rushing_yards', label: 'Career Rushing Yards' },
-      REC: { positions: ['WR', 'TE'], statKey: 'receiving_yards', label: 'Career Receiving Yards' },
-      DEF: { positions: ['LB', 'DB', 'CB', 'S', 'DE', 'DT', 'DL'], statKey: 'tackles', label: 'Career Tackles' },
-    },
-  },
-  mlb: {
-    groups: {
-      Batter: { positionGroup: 'Batter', statKey: 'home_runs', label: 'Career Home Runs' },
-      Pitcher: { positionGroup: 'Pitcher', statKey: 'strikeouts_pitched', label: 'Career Strikeouts' },
-    },
-  },
-  nba: {
-    groups: {
-      ALL: { positions: null, statKey: 'points', label: 'Career Points' },
-    },
-  },
-}
+// More vs Less's categories/modes/scoring now live in src/lib/moreOrLess.js
+// (ported from who_had_more_game.dart and its mlb_/nba_ equivalents) — the
+// single-position-group client-side pairing above had no fairness tuning,
+// no RPCs, no per-sport mode system, and none of mobile's scoring/lives/
+// streak mechanics.
 
 // The Lineup's category lists now live in src/lib/lineup.js (ported directly
 // from lineup_game.dart / mlb_lineup_game.dart / nba_lineup_game.dart), not
