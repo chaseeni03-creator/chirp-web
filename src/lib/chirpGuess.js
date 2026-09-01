@@ -52,6 +52,23 @@ export function mlbResolveTeam(code) {
   return MLB_TEAMS[canon] || null
 }
 
+/** Every raw Lahman teamID belonging to the same franchise as `canonCode` — mlb_season_stats.team stores the raw code, never the modern one. */
+function mlbRawCodesFor(canonCode) {
+  const raws = Object.entries(MLB_TEAM_ALIASES).filter(([, v]) => v === canonCode).map(([k]) => k)
+  return [...raws, canonCode]
+}
+
+/** Team/division/league -> the mlb_season_stats.team (raw) codes that scope covers (used by The Lineup). */
+export function mlbTeamCodesForScope(type, value) {
+  if (type === 'team') {
+    const canon = MLB_TEAM_ALIASES[value.toUpperCase()] || value.toUpperCase()
+    return mlbRawCodesFor(canon)
+  }
+  if (type === 'division') return Object.entries(MLB_TEAMS).filter(([, t]) => t.division === value).flatMap(([code]) => mlbRawCodesFor(code))
+  if (type === 'league') return Object.entries(MLB_TEAMS).filter(([, t]) => t.league === value).flatMap(([code]) => mlbRawCodesFor(code))
+  return []
+}
+
 const NBA_TEAMS = {
   BOS: { conference: 'Eastern', division: 'Atlantic' }, BRK: { conference: 'Eastern', division: 'Atlantic' },
   NYK: { conference: 'Eastern', division: 'Atlantic' }, PHI: { conference: 'Eastern', division: 'Atlantic' },
@@ -85,6 +102,23 @@ export function nbaResolveTeam(code) {
   if (!code) return null
   const canon = NBA_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
   return NBA_TEAMS[canon] || null
+}
+
+/** Every raw historical code belonging to the same franchise as `canonCode` — nba_season_stats.team stores the raw per-era code. */
+function nbaRawCodesFor(canonCode) {
+  const raws = Object.entries(NBA_TEAM_ALIASES).filter(([, v]) => v === canonCode).map(([k]) => k)
+  return [...raws, canonCode]
+}
+
+/** Team/division/conference -> the nba_season_stats.team (raw) codes that scope covers (used by The Lineup). */
+export function nbaTeamCodesForScope(type, value) {
+  if (type === 'team') {
+    const canon = NBA_TEAM_ALIASES[value.toUpperCase()] || value.toUpperCase()
+    return nbaRawCodesFor(canon)
+  }
+  if (type === 'division') return Object.entries(NBA_TEAMS).filter(([, t]) => t.division === value).flatMap(([code]) => nbaRawCodesFor(code))
+  if (type === 'conference') return Object.entries(NBA_TEAMS).filter(([, t]) => t.conference === value).flatMap(([code]) => nbaRawCodesFor(code))
+  return []
 }
 
 // ── Generic tile helpers ─────────────────────────────────────────────────

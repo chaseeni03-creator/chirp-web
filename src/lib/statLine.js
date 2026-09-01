@@ -36,6 +36,14 @@ export function nflResolveTeam(code) {
   return c ? NFL_TEAMS[c] || null : null
 }
 
+/** Team/division/conference -> the nfl_season_stats.team codes that scope covers (used by The Lineup). */
+export function nflTeamCodesForScope(type, value) {
+  if (type === 'team') return [nflCanonicalCode(value)]
+  if (type === 'division') return Object.entries(NFL_TEAMS).filter(([, t]) => t.division === value).map(([code]) => code)
+  if (type === 'conference') return Object.entries(NFL_TEAMS).filter(([, t]) => t.conference === value).map(([code]) => code)
+  return []
+}
+
 // ── NFL position groups / labels ────────────────────────────────────────────
 
 export function nflPositionGroupFor(rawPosition) {

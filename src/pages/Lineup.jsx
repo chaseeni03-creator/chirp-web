@@ -3,33 +3,24 @@ import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
-import { TABLES, LINEUP_CATEGORIES, SPORT_META } from '../lib/sports'
+import { TABLES, SPORT_META } from '../lib/sports'
+import {
+  LINEUP_CATEGORIES, lineupMaxTotalScore, computeLineupBonuses,
+  lineupScopeTimeLabel, submitCategoryGuess, formatLineupTotal,
+} from '../lib/lineup'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 
-async function computeLeaders(tables, daily, statKey) {
-  let scoped
-  if (daily.scope_type === 'team') {
-    let q = supabase.from(tables.seasonStats).select(`player_id, team, ${statKey}`)
-    if (daily.time_type === 'season') q = q.eq('season', Number(daily.time_value))
-    const { data } = await q.eq('team', daily.scope_value).limit(5000)
-    scoped = data || []
-  } else {
-    let q = supabase.from(tables.seasonStats).select(`player_id, ${statKey}`)
-    if (daily.time_type === 'season') q = q.eq('season', Number(daily.time_value))
-    const { data } = await q.limit(5000)
-    scoped = data || []
-  }
+const SECTIONS = {
+  nfl: [{ key: 'offense', label: 'OFFENSE' }, { key: 'defense', label: 'DEFENSE' }],
+  mlb: [{ key: 'batting', label: 'BATTING' }, { key: 'pitching', label: 'PITCHING' }],
+  nba: null,
+}
 
-  const totals = new Map()
-  for (const r of scoped) totals.set(r.player_id, (totals.get(r.player_id) || 0) + (r[statKey] ?? 0))
-  const ranked = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3)
-  if (ranked.length === 0) return []
-
-  const { data: players } = await supabase.from(tables.players).select('id, full_name').in('id', ranked.map(([id]) => id))
-  const nameById = new Map((players || []).map((p) => [p.id, p.full_name]))
-  return ranked.map(([playerId, value]) => ({ playerId, value, name: nameById.get(playerId) || 'Unknown' }))
+const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
+function medal(rank) {
+  return MEDAL[rank] || '⬜'
 }
 
 export default function Lineup() {
@@ -37,14 +28,18 @@ export default function Lineup() {
   const gameKey = `${sport}-lineup`
   const tables = TABLES[sport]
   const categories = LINEUP_CATEGORIES[sport]
+  const sections = SECTIONS[sport]
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [daily, setDaily] = useState(null)
-  const [picks, setPicks] = useState({})
+  const [scope, setScope] = useState(null)
+  const [time, setTime] = useState(null)
+  const [guesses, setGuesses] = useState({})
+  const [top3ByKey, setTop3ByKey] = useState({})
+  const [errors, setErrors] = useState({})
+  const [submittingKey, setSubmittingKey] = useState(null)
+  const [tab, setTab] = useState(0)
   const [finished, setFinished] = useState(null)
-  const [revealing, setRevealing] = useState(false)
-  const [leaders, setLeaders] = useState({})
   const today = todayStr()
 
   useEffect(() => {
@@ -52,8 +47,10 @@ export default function Lineup() {
     setLoading(true)
     setError(null)
     setFinished(null)
-    setPicks({})
-    setLeaders({})
+    setGuesses({})
+    setTop3ByKey({})
+    setErrors({})
+    setTab(0)
 
     async function load() {
       const already = getTodayResult(gameKey, today)
@@ -77,7 +74,8 @@ export default function Lineup() {
         return
       }
       if (!cancelled) {
-        setDaily(data)
+        setScope({ type: data.scope_type, value: data.scope_value })
+        setTime({ type: data.time_type, value: data.time_value })
         setLoading(false)
       }
     }
@@ -87,34 +85,48 @@ export default function Lineup() {
     }
   }, [today, sport, gameKey, tables.lineupDaily])
 
-  function setPick(catKey, player) {
-    setPicks((p) => ({ ...p, [catKey]: player }))
+  async function finishGame(finalGuesses, finalTop3) {
+    const bonuses = computeLineupBonuses(sport, finalGuesses)
+    const baseScore = categories.reduce((sum, c) => sum + (finalGuesses[c.key]?.points ?? 0), 0)
+    const totalScore = baseScore + bonuses.total
+    const anyCorrect = Object.values(finalGuesses).some((g) => g && g.rank != null)
+    const result = {
+      sport,
+      scopeLabel: lineupScopeTimeLabel(scope, time),
+      guessesByKey: finalGuesses,
+      top3ByKey: finalTop3,
+      baseScore,
+      bonuses,
+      totalScore,
+      maxScore: lineupMaxTotalScore(sport),
+    }
+    saveTodayResult(gameKey, today, result)
+    bumpStreak(gameKey, today, anyCorrect)
+    setFinished(result)
   }
 
-  async function lockIn() {
-    setRevealing(true)
-    const results = {}
-    for (const [key] of categories) {
-      results[key] = await computeLeaders(tables, daily, key)
+  async function handleSelect(category, player) {
+    setSubmittingKey(category.key)
+    setErrors((e) => ({ ...e, [category.key]: null }))
+    const { guess, top3 } = await submitCategoryGuess(sport, tables, {
+      playerId: player.id,
+      playerName: player.full_name,
+      category,
+      scope,
+      time,
+    })
+    setSubmittingKey(null)
+    if (!guess) {
+      setErrors((e) => ({ ...e, [category.key]: `${player.full_name} did not play for the ${lineupScopeTimeLabel(scope, time)}` }))
+      return
     }
-    setLeaders(results)
-
-    let correctCount = 0
-    let totalScore = 0
-    for (const [key] of categories) {
-      const pick = picks[key]
-      const rankIndex = pick ? results[key].findIndex((r) => r.playerId === pick.id) : -1
-      if (rankIndex === 0) totalScore += 100
-      else if (rankIndex === 1) totalScore += 60
-      else if (rankIndex === 2) totalScore += 30
-      if (rankIndex !== -1) correctCount++
+    const nextGuesses = { ...guesses, [category.key]: guess }
+    const nextTop3 = { ...top3ByKey, [category.key]: top3 }
+    setGuesses(nextGuesses)
+    setTop3ByKey(nextTop3)
+    if (categories.every((c) => nextGuesses[c.key])) {
+      await finishGame(nextGuesses, nextTop3)
     }
-
-    const result = { correctCount, total: categories.length, totalScore }
-    saveTodayResult(gameKey, today, result)
-    bumpStreak(gameKey, today, correctCount > 0)
-    setFinished(result)
-    setRevealing(false)
   }
 
   const title = `The Lineup — ${SPORT_META[sport].label}`
@@ -125,56 +137,108 @@ export default function Lineup() {
   if (finished) {
     return (
       <GameShell emoji="📋" title={title}>
-        <p className="mb-4 text-center font-semibold">
-          {finished.correctCount}/{finished.total} in the Top 3 · {finished.totalScore} pts
-        </p>
+        <p className="mb-1 text-center text-sm font-bold text-[var(--color-text-tertiary)]">{finished.scopeLabel}</p>
+        <p className="mb-4 text-center text-2xl font-black">{finished.totalScore.toLocaleString()} pts</p>
+        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm">
+          <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">Base score</span><span className="font-bold">{finished.baseScore}</span></div>
+          {finished.bonuses.allTop3 > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">All Top 3</span><span className="font-bold">+{finished.bonuses.allTop3}</span></div>}
+          {finished.bonuses.allFirst > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">All #1</span><span className="font-bold">+{finished.bonuses.allFirst}</span></div>}
+          {finished.bonuses.perfectA > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">Perfect {sections ? sections[0].label : ''}</span><span className="font-bold">+{finished.bonuses.perfectA}</span></div>}
+          {finished.bonuses.perfectB > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">Perfect {sections ? sections[1].label : ''}</span><span className="font-bold">+{finished.bonuses.perfectB}</span></div>}
+        </div>
         <ShareResult text={buildShareText('lineup', today, finished)} />
 
-        {Object.keys(leaders).length > 0 && (
-          <div className="mt-6 space-y-3">
-            {categories.map(([key, label]) => (
-              <div key={key} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
-                <p className="mb-1 text-xs font-bold text-[var(--color-text-secondary)]">{label}</p>
-                {(leaders[key] || []).map((l, i) => (
-                  <p key={l.playerId} className="text-sm">
-                    {i + 1}. {l.name} — {l.value.toLocaleString()}
-                  </p>
-                ))}
+        <div className="mt-6 space-y-4">
+          {(sections || [{ key: null, label: null }]).map((sec) => (
+            <div key={sec.key ?? 'all'}>
+              {sec.label && <p className="mb-2 text-xs font-bold tracking-wide text-[var(--color-text-tertiary)]">{sec.label}</p>}
+              <div className="space-y-2">
+                {categories.filter((c) => (sec.key ? c.section === sec.key : true)).map((c) => {
+                  const g = finished.guessesByKey[c.key]
+                  const top3 = finished.top3ByKey[c.key] || []
+                  return (
+                    <div key={c.key} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-bold">{c.label}</span>
+                        <span>{medal(g?.rank)} {g?.rank ? g.playerName : 'Missed'} <span className="text-[var(--color-text-tertiary)]">(+{g?.points ?? 0})</span></span>
+                      </div>
+                      {top3.length > 0 && (
+                        <div className="mt-2 space-y-0.5 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-text-secondary)]">
+                          {top3.map((l, i) => (
+                            <p key={l.playerId}>{i + 1}. {l.playerName} — {formatLineupTotal(c, l.total)}</p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          ))}
+        </div>
       </GameShell>
     )
   }
 
-  const scopeLabel = `${daily.time_type === 'season' ? daily.time_value + ' Season' : 'Career'}${
-    daily.scope_type === 'team' ? ' · ' + daily.scope_value : ''
-  }`
+  const visibleCategories = sections ? categories.filter((c) => c.section === sections[tab].key) : categories
 
   return (
     <GameShell emoji="📋" title={title}>
       <p className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold">
-        {scopeLabel}
+        {lineupScopeTimeLabel(scope, time)}
       </p>
 
-      <div className="space-y-3">
-        {categories.map(([key, label]) => (
-          <div key={key}>
-            <p className="mb-1 text-sm font-semibold text-[var(--color-text-secondary)]">{label}</p>
-            <PlayerSearchInput table={tables.players} onSelect={(p) => setPick(key, p)} placeholder={`Pick a player for ${label}…`} disabled={revealing} />
-            {picks[key] && <p className="mt-1 text-xs text-[var(--color-text)]">Picked: {picks[key].full_name}</p>}
-          </div>
-        ))}
-      </div>
+      {sections && (
+        <div className="mb-4 flex gap-2">
+          {sections.map((sec, i) => {
+            const locked = categories.filter((c) => c.section === sec.key && guesses[c.key]).length
+            const total = categories.filter((c) => c.section === sec.key).length
+            return (
+              <button
+                key={sec.key}
+                onClick={() => setTab(i)}
+                className={`flex-1 rounded-lg py-2 text-xs font-bold ${tab === i ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'}`}
+              >
+                {sec.label} ({locked}/{total})
+              </button>
+            )
+          })}
+        </div>
+      )}
 
-      <button
-        onClick={lockIn}
-        disabled={revealing}
-        className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white disabled:opacity-60"
-      >
-        {revealing ? 'Revealing…' : 'Lock In Lineup'}
-      </button>
+      <div className="space-y-3">
+        {visibleCategories.map((c) => {
+          const g = guesses[c.key]
+          const top3 = top3ByKey[c.key] || []
+          return (
+            <div key={c.key} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3">
+              <p className="mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{c.label}</p>
+              {g ? (
+                <div>
+                  <p className="text-sm font-bold">{medal(g.rank)} {g.rank ? g.playerName : 'Missed'} <span className="font-normal text-[var(--color-text-tertiary)]">(+{g.points})</span></p>
+                  {top3.length > 0 && (
+                    <div className="mt-2 space-y-0.5 border-t border-[var(--color-border)] pt-2 text-xs text-[var(--color-text-secondary)]">
+                      {top3.map((l, i) => (
+                        <p key={l.playerId}>{i + 1}. {l.playerName} — {formatLineupTotal(c, l.total)}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <PlayerSearchInput
+                    table={tables.players}
+                    onSelect={(p) => handleSelect(c, p)}
+                    placeholder={`Pick a player for ${c.label}…`}
+                    disabled={submittingKey === c.key}
+                  />
+                  {errors[c.key] && <p className="mt-1 text-xs text-[var(--color-error)]">{errors[c.key]}</p>}
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </GameShell>
   )
 }

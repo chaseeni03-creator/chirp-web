@@ -184,24 +184,10 @@ export const MORE_OR_LESS_CONFIG = {
   },
 }
 
-// ── The Lineup: 9 counting-stat categories per sport ────────────────────────
-
-export const LINEUP_CATEGORIES = {
-  nfl: [
-    ['passing_yards', 'Passing Yards'], ['rushing_yards', 'Rushing Yards'], ['receiving_yards', 'Receiving Yards'],
-    ['passing_touchdowns', 'Passing TDs'], ['rushing_touchdowns', 'Rushing TDs'], ['receiving_touchdowns', 'Receiving TDs'],
-    ['sacks', 'Sacks'], ['interceptions_caught', 'Interceptions'], ['tackles', 'Tackles'],
-  ],
-  mlb: [
-    ['home_runs', 'Home Runs'], ['rbi', 'RBI'], ['hits', 'Hits'], ['stolen_bases', 'Stolen Bases'], ['doubles', 'Doubles'],
-    ['wins', 'Wins'], ['saves', 'Saves'], ['strikeouts_pitched', 'Strikeouts'], ['walks', 'Walks'],
-  ],
-  nba: [
-    ['total_points', 'Points'], ['total_rebounds', 'Rebounds'], ['total_assists', 'Assists'],
-    ['total_steals', 'Steals'], ['total_blocks', 'Blocks'], ['field_goals_made', 'FG Made'],
-    ['three_pointers_made', '3PM'], ['free_throws_made', 'FT Made'], ['games_played', 'Games Played'],
-  ],
-}
+// The Lineup's category lists now live in src/lib/lineup.js (ported directly
+// from lineup_game.dart / mlb_lineup_game.dart / nba_lineup_game.dart), not
+// here — the old hardcoded lists above had a wrong MLB column (walks instead
+// of runs) and fabricated NBA categories that don't exist on mobile.
 
 // ── Chirp Grid: team -> league/division lookups for the 'league'/'division' ─
 // category types (these are real-world facts, not derived from any column).

@@ -1,3 +1,5 @@
+import { LINEUP_CATEGORIES } from './lineup'
+
 export const SITE_URL = 'playchirpsports.com'
 
 function friendlyDate(dateStr) {
@@ -47,8 +49,27 @@ export function buildShareText(gameKey, dateStr, payload) {
       return `⚔️ More vs Less - ${date}\nScore: ${correctAnswers} · Best streak: 🔥${bestStreak}\nPlay free at ${SITE_URL}`
     }
     case 'lineup': {
-      const { correctCount, total, totalScore } = payload
-      return `📋 The Lineup - ${date}\n${correctCount}/${total} in the Top 3 · ${totalScore} pts\nPlay free at ${SITE_URL}`
+      const { sport, scopeLabel, guessesByKey, totalScore, maxScore } = payload
+      const lineupMedal = (rank) => (rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : '⬜')
+      const categories = LINEUP_CATEGORIES[sport]
+      const line = (c) => {
+        const g = guessesByKey[c.key]
+        const name = g?.rank != null ? g.playerName : 'Missed'
+        return `${c.shareLabel}: ${lineupMedal(g?.rank)} ${name} (+${g?.points ?? 0})`
+      }
+      const scoreStr = totalScore.toLocaleString()
+      if (sport === 'nba') {
+        return `NBA The Lineup - ${date}\n${scopeLabel}\n\n${categories.map(line).join('\n')}\n\nScore: ${scoreStr}/${maxScore} 🏀`
+      }
+      const sectionAKey = sport === 'mlb' ? 'batting' : 'offense'
+      const sectionBKey = sport === 'mlb' ? 'pitching' : 'defense'
+      const sectionALabel = sport === 'mlb' ? 'BATTING' : 'OFFENSE'
+      const sectionBLabel = sport === 'mlb' ? 'PITCHING' : 'DEFENSE'
+      const a = categories.filter((c) => c.section === sectionAKey).map(line).join('\n')
+      const b = categories.filter((c) => c.section === sectionBKey).map(line).join('\n')
+      const title = sport === 'mlb' ? 'MLB The Lineup' : 'The Lineup'
+      const emoji = sport === 'mlb' ? '⚾' : '🐦🏈'
+      return `${title} - ${date}\n${scopeLabel}\n\n${sectionALabel}:\n${a}\n\n${sectionBLabel}:\n${b}\n\nScore: ${scoreStr}/${maxScore} ${emoji}`
     }
     case 'grid': {
       const { grid: cells, correctCount } = payload
