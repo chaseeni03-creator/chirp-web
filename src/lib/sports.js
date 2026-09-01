@@ -79,7 +79,7 @@ export const TABLES = {
   },
 }
 
-// ── Chirp Guess: player-search fields + 8 comparison attributes ────────────
+// ── Player search (autocomplete input used by every game) ──────────────────
 
 export const PLAYER_SEARCH_FIELDS = {
   nfl: 'id, full_name, position, current_team',
@@ -87,44 +87,11 @@ export const PLAYER_SEARCH_FIELDS = {
   nba: 'id, full_name, position, current_team',
 }
 
-export const CHIRP_GUESS_FIELDS = {
-  nfl: 'id, full_name, position, current_team, college, draft_year, draft_round, draft_pick, jersey_number, season_first',
-  mlb: 'id, full_name, position, current_team, college, bats, throws, all_star_selections, season_first, birth_country',
-  nba: 'id, full_name, position, current_team, draft_year, draft_round, draft_pick, all_star_selections, season_first, birth_country',
-}
-
-export const CHIRP_GUESS_ATTRS = {
-  nfl: [
-    { key: 'position', label: 'Position', type: 'exact' },
-    { key: 'current_team', label: 'Team', type: 'exact' },
-    { key: 'college', label: 'College', type: 'exact' },
-    { key: 'draft_round', label: 'Draft Rd', type: 'number', closeRange: 1 },
-    { key: 'draft_pick', label: 'Draft Pick', type: 'number', closeRange: 15 },
-    { key: 'draft_year', label: 'Draft Yr', type: 'number', closeRange: 3 },
-    { key: 'jersey_number', label: 'Jersey #', type: 'number', closeRange: 5 },
-    { key: 'season_first', label: 'Rookie Yr', type: 'number', closeRange: 2 },
-  ],
-  mlb: [
-    { key: 'position', label: 'Position', type: 'exact' },
-    { key: 'current_team', label: 'Team', type: 'exact' },
-    { key: 'college', label: 'College', type: 'exact' },
-    { key: 'bats', label: 'Bats', type: 'exact' },
-    { key: 'throws', label: 'Throws', type: 'exact' },
-    { key: 'birth_country', label: 'Country', type: 'exact' },
-    { key: 'all_star_selections', label: 'All-Stars', type: 'number', closeRange: 2 },
-    { key: 'season_first', label: 'Rookie Yr', type: 'number', closeRange: 2 },
-  ],
-  nba: [
-    { key: 'position', label: 'Position', type: 'exact' },
-    { key: 'current_team', label: 'Team', type: 'exact' },
-    { key: 'birth_country', label: 'Country', type: 'exact' },
-    { key: 'draft_round', label: 'Draft Rd', type: 'number', closeRange: 1 },
-    { key: 'draft_pick', label: 'Draft Pick', type: 'number', closeRange: 15 },
-    { key: 'draft_year', label: 'Draft Yr', type: 'number', closeRange: 3 },
-    { key: 'all_star_selections', label: 'All-Stars', type: 'number', closeRange: 2 },
-    { key: 'season_first', label: 'Rookie Yr', type: 'number', closeRange: 2 },
-  ],
-}
+// Chirp Guess field lists + tile logic now live in src/lib/chirpGuess.js,
+// ported directly from the Flutter app's chirp_guess_models.dart so the
+// comparison logic matches mobile exactly (team/position/conference/division
+// each have real, sport-specific partial-credit rules that don't reduce to a
+// generic "exact or numeric-threshold" scheme).
 
 // ── Stat Line: progressive clue order per sport/position group ─────────────
 

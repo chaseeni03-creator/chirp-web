@@ -3,28 +3,18 @@ import { supabase, todayStr } from '../lib/supabase'
 import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { useSport } from '../context/SportContext'
-import { TABLES, CHIRP_GUESS_FIELDS, CHIRP_GUESS_ATTRS, SPORT_META } from '../lib/sports'
+import { TABLES, SPORT_META } from '../lib/sports'
+import { CHIRP_GUESS_FIELDS, CHIRP_GUESS_HEADERS, compareChirpGuess } from '../lib/chirpGuess'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 
 const MAX_GUESSES = 8
 
-function compareAttr(attr, guessVal, answerVal) {
-  if (guessVal == null || answerVal == null) return { state: 'wrong', arrow: null }
-  if (attr.type === 'exact') {
-    return { state: guessVal === answerVal ? 'correct' : 'wrong', arrow: null }
-  }
-  const diff = answerVal - guessVal
-  if (diff === 0) return { state: 'correct', arrow: null }
-  const state = Math.abs(diff) <= attr.closeRange ? 'close' : 'wrong'
-  return { state, arrow: diff > 0 ? 'up' : 'down' }
-}
-
 const tileColor = {
-  correct: 'bg-[var(--color-success)]/20 border-[var(--color-success)] text-[var(--color-success)]',
-  close: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)]',
-  wrong: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)]',
+  green: 'bg-[var(--color-success)]/20 border-[var(--color-success)] text-[var(--color-success)]',
+  orange: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)]',
+  grey: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)]',
 }
 
 export default function ChirpGuess() {
@@ -32,7 +22,7 @@ export default function ChirpGuess() {
   const gameKey = `${sport}-chirp-guess`
   const tables = TABLES[sport]
   const fields = CHIRP_GUESS_FIELDS[sport]
-  const attrs = CHIRP_GUESS_ATTRS[sport]
+  const headers = CHIRP_GUESS_HEADERS[sport]
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -93,7 +83,7 @@ export default function ChirpGuess() {
   }
 
   function handleSelect(player) {
-    const tiles = attrs.map((attr) => compareAttr(attr, player[attr.key], answer[attr.key]))
+    const tiles = compareChirpGuess(sport, player, answer)
     const row = { player, tiles }
     const nextRows = [...rows, row]
     setRows(nextRows)
@@ -133,14 +123,15 @@ export default function ChirpGuess() {
         {rows.map((row, i) => (
           <div key={i}>
             <p className="mb-1 text-xs font-semibold text-[var(--color-text-secondary)]">{row.player.full_name}</p>
-            <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+            <div className={`grid gap-1.5 ${headers.length === 10 ? 'grid-cols-5' : 'grid-cols-4'}`}>
               {row.tiles.map((t, j) => (
                 <div
                   key={j}
-                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold ${tileColor[t.state]}`}
-                  title={attrs[j].label}
+                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold ${tileColor[t.color]}`}
+                  title={headers[j]}
                 >
-                  <span>{attrs[j].label}</span>
+                  <span>{headers[j]}</span>
+                  <span className="text-[9px] font-normal normal-case opacity-80">{String(t.value)}</span>
                   {t.arrow && <span className="text-sm">{t.arrow === 'up' ? '↑' : '↓'}</span>}
                 </div>
               ))}
