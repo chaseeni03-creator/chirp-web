@@ -5,6 +5,7 @@ import PlayWithFriendsModal from '../components/PlayWithFriendsModal'
 import GroupOnboarding from '../components/GroupOnboarding'
 import WelcomeBackGate from '../components/WelcomeBackGate'
 import ScoreToast from '../components/ScoreToast'
+import LoadingScreen from '../components/LoadingScreen'
 import { useGroup } from '../context/GroupContext'
 import { useSport } from '../context/SportContext'
 import { SPORT_META } from '../lib/sports'
@@ -20,7 +21,7 @@ import {
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 export default function GroupPage() {
-  const { user, saveUser, leaveOneGroup, setActiveGroup, activeGroup } = useGroup()
+  const { user, saveUser, leaveOneGroup, setActiveGroup, activeGroup, sessionChecked } = useGroup()
   const { sport } = useSport()
   const [tab, setTab] = useState('scores')
   const [board, setBoard] = useState(null)
@@ -60,6 +61,11 @@ export default function GroupPage() {
     })
     return unsubscribe
   }, [activeGroup, needsWelcomeBack, loadBoard, loadMembers, tab, user])
+
+  // Wait for the initial getSession() check before deciding what to show —
+  // otherwise, right after the Google OAuth redirect, this can render the
+  // signed-out onboarding form for a beat before the session arrives.
+  if (!sessionChecked) return <LoadingScreen />
 
   if (!user || !activeGroup) return <NoGroupView />
 
