@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGroup } from '../context/GroupContext'
 import {
   signInWithGoogle, createGroup, joinGroup, displayCode, inviteLink, rememberGroup,
@@ -27,6 +27,18 @@ export default function GroupOnboarding({ prefillCode, onDone }) {
   const [retryPin, setRetryPin] = useState('')
   const [createdGroup, setCreatedGroup] = useState(null)
   const [copied, setCopied] = useState(null)
+
+  // The Google session resolves asynchronously (a beat after this component
+  // mounts, e.g. right after the OAuth redirect lands on /groups) — the
+  // useState above only reads it once at mount, so this catches the session
+  // arriving afterward and advances past the identity screen.
+  useEffect(() => {
+    if (googleSession && step === 'identity') {
+      setNickname(googleSession.user?.user_metadata?.full_name || googleSession.user?.email || '')
+      setStep('groupChoice')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [googleSession])
 
   const identity = googleSession
     ? { type: 'google', userId: googleSession.user.id }
