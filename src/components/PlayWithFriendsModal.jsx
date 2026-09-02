@@ -101,7 +101,7 @@ export default function PlayWithFriendsModal({ onClose }) {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={24}
-              placeholder="e.g. Chase"
+              placeholder="e.g. Greg Joseph"
               className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
             />
 
@@ -153,7 +153,7 @@ export default function PlayWithFriendsModal({ onClose }) {
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
                 maxLength={40}
-                placeholder="Chase's Crew"
+                placeholder="G's Crew"
                 className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
               />
 

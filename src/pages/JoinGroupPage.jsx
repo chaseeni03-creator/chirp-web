@@ -86,7 +86,7 @@ export default function JoinGroupPage() {
           value={nickname}
           onChange={(e) => setNickname(e.target.value)}
           maxLength={24}
-          placeholder="e.g. Chase"
+          placeholder="e.g. Greg Joseph"
           className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 text-sm outline-none focus:border-[var(--color-primary)]"
         />
         {error && <p className="mt-2 text-center text-xs text-[var(--color-primary)]">{error}</p>}
