@@ -106,9 +106,13 @@ export { MAX_MEMBERS, MAX_GROUPS_PER_USER }
 // ── Google auth ──────────────────────────────────────────────────────────────
 
 export async function signInWithGoogle() {
+  // Hardcoded on purpose — using window.location.origin here redirected to
+  // localhost in production (Supabase falls back to the dashboard's Site URL
+  // when a requested redirect isn't recognized, and that was left pointed at
+  // a local dev URL), so this is pinned to the real production URL instead.
   return supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: `${window.location.origin}/groups` },
+    options: { redirectTo: 'https://playchirpsports.com/groups' },
   })
 }
 
