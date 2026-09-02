@@ -1,7 +1,10 @@
-// Groups feature: create/join a code-based group, submit scores, and read a
-// realtime leaderboard. No accounts — nickname + group_code is the entire
-// identity model, matching the rest of this app's anonymous, local-storage-
-// only design (see README / src/lib/storage.js).
+// Groups feature v2: Google Sign-In (via Supabase Auth, same provider the
+// Flutter app uses) or guest mode (nickname + 4-digit PIN, localStorage only).
+// A member is either a real Supabase Auth user (user_id set, is_guest=false,
+// works on any device) or a guest (user_id null, is_guest=true, tied to this
+// browser + whatever PIN they picked). See supabase/web_groups_auth.sql for
+// why guest ownership/deletes are app-level trust, not RLS-enforced — there's
+// no Supabase Auth session for a guest to check auth.uid() against.
 
 import { supabase, todayStr } from './supabase'
 import { SITE_URL } from './share'
@@ -10,7 +13,8 @@ import { ERAS } from './sports'
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no O/0/I/1 — avoids misreads
 const CODE_LENGTH = 4
 const MAX_MEMBERS = 20
-const LS_PREFIX = 'chirp-web:group:'
+const MAX_GROUPS_PER_USER = 3
+const LS_KEY = 'chirp-web:user'
 
 export const GAME_LABELS = {
   'chirp-guess': 'Chirp Guess',
@@ -32,38 +36,94 @@ export const GAME_PATHS = {
   grid: '/grid',
 }
 
-// ── Local storage (per-browser "session") ───────────────────────────────────
+export class NicknameTakenError extends Error {
+  constructor(nickname, canUsePin) {
+    super(canUsePin
+      ? `${nickname} is already taken in this group. Enter the PIN to continue as ${nickname} or choose a different nickname.`
+      : `${nickname} is already taken in this group — choose a different nickname.`)
+    this.nickname = nickname
+    this.canUsePin = canUsePin
+  }
+}
 
-export function getStoredGroup() {
+// ── PIN hashing (Web Crypto — no dependency) ────────────────────────────────
+// Note: RLS grants public SELECT on web_group_members, so this hash is
+// readable by anyone in the group. Hashing stops a plaintext PIN showing up
+// in a network tab, but a 4-digit space (10,000 combos) is not a real secret
+// against someone willing to brute-force it offline — this is a nickname-
+// squatting deterrent for friends, not a security boundary.
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(`chirp-sports-guest-pin:${pin}`)
+  const digest = await crypto.subtle.digest('SHA-256', data)
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// ── Local storage (per-browser identity) ────────────────────────────────────
+
+export function getStoredUser() {
   try {
-    const nickname = localStorage.getItem(LS_PREFIX + 'nickname')
-    const id = localStorage.getItem(LS_PREFIX + 'group_id')
-    const code = localStorage.getItem(LS_PREFIX + 'group_code')
-    const name = localStorage.getItem(LS_PREFIX + 'group_name')
-    if (!nickname || !id || !code) return null
-    return { nickname, id, code, name: name || 'Group' }
+    const raw = localStorage.getItem(LS_KEY)
+    if (!raw) return null
+    const user = JSON.parse(raw)
+    if (!user || !user.nickname || !Array.isArray(user.groups)) return null
+    return user
   } catch {
     return null
   }
 }
 
-export function storeGroup({ nickname, id, code, name }) {
+export function storeUser(user) {
   try {
-    localStorage.setItem(LS_PREFIX + 'nickname', nickname)
-    localStorage.setItem(LS_PREFIX + 'group_id', id)
-    localStorage.setItem(LS_PREFIX + 'group_code', code)
-    localStorage.setItem(LS_PREFIX + 'group_name', name)
+    localStorage.setItem(LS_KEY, JSON.stringify(user))
   } catch {
     /* ignore */
   }
 }
 
-export function clearStoredGroup() {
+export function clearStoredUser() {
   try {
-    ;['nickname', 'group_id', 'group_code', 'group_name'].forEach((k) => localStorage.removeItem(LS_PREFIX + k))
+    localStorage.removeItem(LS_KEY)
   } catch {
     /* ignore */
   }
+}
+
+/** Add/replace one group's membership record on the stored user, capped at MAX_GROUPS_PER_USER. */
+export function rememberGroup(user, membership) {
+  const groups = (user?.groups || []).filter((g) => g.id !== membership.id)
+  groups.unshift(membership)
+  return { ...user, groups: groups.slice(0, MAX_GROUPS_PER_USER), activeGroupId: membership.id }
+}
+
+export function forgetGroup(user, groupId) {
+  const groups = (user.groups || []).filter((g) => g.id !== groupId)
+  const activeGroupId = user.activeGroupId === groupId ? groups[0]?.id ?? null : user.activeGroupId
+  return { ...user, groups, activeGroupId }
+}
+
+export { MAX_MEMBERS, MAX_GROUPS_PER_USER }
+
+// ── Google auth ──────────────────────────────────────────────────────────────
+
+export async function signInWithGoogle() {
+  return supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}/groups` },
+  })
+}
+
+export async function signOutGoogle() {
+  await supabase.auth.signOut()
+}
+
+export async function getGoogleSession() {
+  const { data } = await supabase.auth.getSession()
+  return data.session ?? null
+}
+
+export function onAuthChange(callback) {
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
+  return () => data.subscription.unsubscribe()
 }
 
 // ── Codes / links ────────────────────────────────────────────────────────────
@@ -92,6 +152,20 @@ export function inviteLink(code) {
   return `${SITE_URL}/g/${code}`
 }
 
+export function buildInviteMessage(group) {
+  return `Join ${group.name} on Chirp Sports! Daily NFL sports games.\nCode: ${displayCode(group.code)}\n${inviteLink(group.code)}`
+}
+
+export function smsShareUrl(text) {
+  return `sms:&body=${encodeURIComponent(text)}`
+}
+export function whatsappShareUrl(text) {
+  return `https://wa.me/?text=${encodeURIComponent(text)}`
+}
+export function twitterShareUrl(text) {
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`
+}
+
 // ── Create / join ────────────────────────────────────────────────────────────
 
 async function generateUniqueCode() {
@@ -103,7 +177,11 @@ async function generateUniqueCode() {
   throw new Error('Could not generate a unique group code — try again')
 }
 
-export async function createGroup({ groupName, nickname, isPublic = false }) {
+/**
+ * identity: { type: 'google', userId } | { type: 'guest', pin }
+ * Returns { id, code, name } — call rememberGroup + storeUser with the result yourself.
+ */
+export async function createGroup({ groupName, nickname, isPublic = false, identity }) {
   const code = await generateUniqueCode()
   const { data: group, error } = await supabase
     .from('web_groups')
@@ -112,39 +190,97 @@ export async function createGroup({ groupName, nickname, isPublic = false }) {
     .single()
   if (error) throw error
 
-  await supabase.from('web_group_members').insert({ group_id: group.id, nickname: nickname.trim() })
-  const result = { id: group.id, code: group.group_code, name: group.group_name }
-  storeGroup({ nickname: nickname.trim(), ...result })
-  return result
+  const memberRow = {
+    group_id: group.id,
+    nickname: nickname.trim(),
+    is_guest: identity.type === 'guest',
+    user_id: identity.type === 'google' ? identity.userId : null,
+    pin_hash: identity.type === 'guest' ? await hashPin(identity.pin) : null,
+  }
+  const { error: memberErr } = await supabase.from('web_group_members').insert(memberRow)
+  if (memberErr) throw memberErr
+
+  return { id: group.id, code: group.group_code, name: group.group_name }
 }
 
-export async function joinGroup({ code, nickname }) {
+/**
+ * identity: { type: 'google', userId } | { type: 'guest', pin }
+ * Throws NicknameTakenError if the nickname belongs to someone else (and, for
+ * guests, the given PIN doesn't match the existing guest row).
+ */
+export async function joinGroup({ code, nickname, identity }) {
   const clean = normalizeCode(code)
   const { data: group, error } = await supabase.from('web_groups').select('*').eq('group_code', clean).maybeSingle()
   if (error || !group) throw new Error("That group code doesn't exist")
+
+  const trimmedNickname = nickname.trim()
+  const { data: existing } = await supabase
+    .from('web_group_members')
+    .select('*')
+    .eq('group_id', group.id)
+    .eq('nickname', trimmedNickname)
+    .maybeSingle()
+
+  if (existing) {
+    if (identity.type === 'google' && existing.user_id === identity.userId) {
+      await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
+      return { id: group.id, code: group.group_code, name: group.group_name }
+    }
+    if (identity.type === 'guest' && existing.is_guest) {
+      const givenHash = await hashPin(identity.pin)
+      if (givenHash !== existing.pin_hash) throw new NicknameTakenError(trimmedNickname, true)
+      await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
+      return { id: group.id, code: group.group_code, name: group.group_name }
+    }
+    // Belongs to someone else entirely (different Google account, or a guest
+    // and this join is Google, or vice versa) — no PIN can resolve that.
+    throw new NicknameTakenError(trimmedNickname, identity.type === 'guest' && existing.is_guest)
+  }
 
   const { count } = await supabase
     .from('web_group_members')
     .select('id', { count: 'exact', head: true })
     .eq('group_id', group.id)
-  if ((count || 0) >= MAX_MEMBERS) throw new Error(`${group.group_name} is full (${MAX_MEMBERS} members max)`)
-
-  const trimmedNickname = nickname.trim()
-  const { data: existing } = await supabase
-    .from('web_group_members')
-    .select('id')
-    .eq('group_id', group.id)
-    .eq('nickname', trimmedNickname)
-    .maybeSingle()
-  if (existing) {
-    await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
-  } else {
-    await supabase.from('web_group_members').insert({ group_id: group.id, nickname: trimmedNickname })
+  if ((count || 0) >= (group.max_members || MAX_MEMBERS)) {
+    throw new Error(`${group.group_name} is full (${group.max_members || MAX_MEMBERS} members max)`)
   }
 
-  const result = { id: group.id, code: group.group_code, name: group.group_name }
-  storeGroup({ nickname: trimmedNickname, ...result })
-  return result
+  const memberRow = {
+    group_id: group.id,
+    nickname: trimmedNickname,
+    is_guest: identity.type === 'guest',
+    user_id: identity.type === 'google' ? identity.userId : null,
+    pin_hash: identity.type === 'guest' ? await hashPin(identity.pin) : null,
+  }
+  const { error: insertErr } = await supabase.from('web_group_members').insert(memberRow)
+  if (insertErr) throw insertErr
+
+  return { id: group.id, code: group.group_code, name: group.group_name }
+}
+
+/** Re-verifies a guest's cached PIN against the server — used for the "welcome back" confirm screen. */
+export async function verifyGuestPin({ groupId, nickname, pin }) {
+  const { data: member } = await supabase
+    .from('web_group_members')
+    .select('id, pin_hash')
+    .eq('group_id', groupId)
+    .eq('nickname', nickname)
+    .maybeSingle()
+  if (!member) return false
+  const givenHash = await hashPin(pin)
+  return givenHash === member.pin_hash
+}
+
+export async function leaveGroup({ groupId, nickname }) {
+  const { data: member } = await supabase
+    .from('web_group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('nickname', nickname)
+    .maybeSingle()
+  if (member) {
+    await supabase.from('web_group_members').delete().eq('id', member.id)
+  }
 }
 
 export async function fetchPublicGroups(limit = 20) {
@@ -164,21 +300,83 @@ export async function fetchPublicGroups(limit = 20) {
   return withCounts
 }
 
-export async function fetchMemberCount(groupId) {
-  const { count } = await supabase.from('web_group_members').select('id', { count: 'exact', head: true }).eq('group_id', groupId)
-  return count || 0
+export async function fetchGroupsByIds(ids) {
+  if (!ids || ids.length === 0) return []
+  const { data } = await supabase.from('web_groups').select('id, group_code, group_name').in('id', ids)
+  return (data || []).map((g) => ({ id: g.id, code: g.group_code, name: g.group_name }))
+}
+
+// ── Members / streaks ────────────────────────────────────────────────────────
+
+function daysAgo(dateStr) {
+  const then = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.setHours(0, 0, 0, 0) - then.setHours(0, 0, 0, 0)
+  return Math.round(diffMs / 86400000)
+}
+
+/** 🟢 active today, 🟡 active yesterday, ⚫ older. */
+export function memberStatus(lastActive) {
+  if (!lastActive) return { dot: '⚫', label: 'Not active yet' }
+  const diff = daysAgo(lastActive)
+  if (diff <= 0) return { dot: '🟢', label: 'Active today' }
+  if (diff === 1) return { dot: '🟡', label: 'Last active: yesterday' }
+  return { dot: '⚫', label: `Last active: ${diff} days ago` }
+}
+
+/** Consecutive-day streak (any game counts), computed from real submitted scores rather than a trusted client counter. */
+export async function computeStreak(groupId, nickname) {
+  const { data } = await supabase
+    .from('web_group_scores')
+    .select('game_date')
+    .eq('group_id', groupId)
+    .eq('nickname', nickname)
+    .order('game_date', { ascending: false })
+  if (!data || data.length === 0) return 0
+  const dates = [...new Set(data.map((r) => r.game_date))].sort().reverse()
+  const today = todayStr()
+  let cursor = new Date(today)
+  // A streak still counts if today hasn't been played yet but yesterday was.
+  if (dates[0] !== today) cursor.setDate(cursor.getDate() - 1)
+  let streak = 0
+  for (const d of dates) {
+    const expected = cursor.toISOString().slice(0, 10)
+    if (d !== expected) break
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
+}
+
+export async function fetchGroupMembers(groupId) {
+  const { data } = await supabase
+    .from('web_group_members')
+    .select('id, nickname, is_guest, user_id, last_active, joined_at')
+    .eq('group_id', groupId)
+    .order('joined_at')
+  if (!data) return []
+  return Promise.all(
+    data.map(async (m) => ({
+      ...m,
+      status: memberStatus(m.last_active),
+      streak: await computeStreak(groupId, m.nickname),
+    }))
+  )
 }
 
 // ── Scores ───────────────────────────────────────────────────────────────────
 
-/**
- * Submit (upsert) a member's score for one game/sport/era/day. Safe to call
- * repeatedly for the same era — later calls overwrite that era's row, they
- * never stack duplicates, since era is part of the unique key.
- */
 export async function submitGroupScore({ groupId, nickname, gameType, sport, era, score, details }) {
+  const { data: member } = await supabase
+    .from('web_group_members')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('nickname', nickname)
+    .maybeSingle()
+
   const row = {
     group_id: groupId,
+    member_id: member?.id ?? null,
     nickname,
     game_type: gameType,
     sport,
@@ -191,6 +389,8 @@ export async function submitGroupScore({ groupId, nickname, gameType, sport, era
     .from('web_group_scores')
     .upsert(row, { onConflict: 'group_id,nickname,game_type,sport,game_date,era' })
   if (error) throw error
+
+  if (member) await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', member.id)
   return row
 }
 
@@ -262,12 +462,8 @@ export function subscribeToGroupScores(groupId, onChange) {
 
 export function buildGroupShareText(baseShareText, group) {
   const lines = baseShareText.split('\n')
-  // Insert the group line right after the game title (first line), and swap
-  // the generic "Play free at..." CTA for the group's own invite link.
   const withGroup = [lines[0], `${group.name} | ${displayCode(group.code)}`, ...lines.slice(1)]
   return withGroup
     .join('\n')
     .replace(new RegExp(`Play free at ${SITE_URL}`), `Can you beat me?\n${inviteLink(group.code)}`)
 }
-
-export { MAX_MEMBERS }

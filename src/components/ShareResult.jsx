@@ -4,9 +4,9 @@ import { useGroup } from '../context/GroupContext'
 import { buildGroupShareText } from '../lib/groups'
 
 export default function ShareResult({ text }) {
-  const { group } = useGroup()
+  const { activeGroup } = useGroup()
   const [copied, setCopied] = useState(false)
-  const shareText = group ? buildGroupShareText(text, group) : text
+  const shareText = activeGroup ? buildGroupShareText(text, activeGroup) : text
 
   async function handleCopy() {
     const ok = await copyToClipboard(shareText)
@@ -16,7 +16,7 @@ export default function ShareResult({ text }) {
 
   return (
     <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
-      {group && (
+      {activeGroup && (
         <p className="mb-2 text-xs font-bold text-[var(--color-text-secondary)]">
           Share with your group 📤 — copy your result to send in the group chat!
         </p>

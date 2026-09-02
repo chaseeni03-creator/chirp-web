@@ -13,7 +13,7 @@ import { displayCode } from '../lib/groups'
 
 export default function Home() {
   const { sport } = useSport()
-  const { group } = useGroup()
+  const { activeGroup } = useGroup()
   const [completed, setCompleted] = useState({})
   const [showFriendsModal, setShowFriendsModal] = useState(false)
   const meta = SPORT_META[sport]
@@ -44,12 +44,12 @@ export default function Home() {
         <p className="text-sm text-[var(--color-text-secondary)] sm:text-base">Daily Sports Games. Free.</p>
         <p className="mt-1 text-xs font-bold text-[var(--color-primary)] sm:text-sm">{meta.gamesTitle}</p>
 
-        {group ? (
+        {activeGroup ? (
           <Link
             to="/groups"
             className="mt-4 inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 px-4 py-2 text-xs font-bold text-[var(--color-primary)] sm:text-sm"
           >
-            🏆 Playing with {group.name} ({displayCode(group.code)}) — View Leaderboard
+            🏆 Playing with {activeGroup.name} ({displayCode(activeGroup.code)}) — View Leaderboard
           </Link>
         ) : (
           <div className="mt-4 flex justify-center gap-2">

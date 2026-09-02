@@ -5,58 +5,75 @@ import { GAME_LABELS, fetchBestScore, submitGroupScore, fetchGroupLeaderboard } 
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
-/** Submits a group score on mount and shows the "submitted / rank / new best?" banner. No-op if the visitor isn't in a group. */
+/** Submits a group score on mount and shows the "submitted / rank / new best or leading?" banner. No-op if the visitor isn't in a group. */
 export default function GroupScoreBanner({ gameType, sport, era, score, details }) {
-  const { group } = useGroup()
+  const { activeGroup, user } = useGroup()
   const [state, setState] = useState('idle') // idle | submitting | done | error
-  const [rank, setRank] = useState(null)
-  const [isNewBest, setIsNewBest] = useState(false)
-  const [priorBest, setPriorBest] = useState(0)
+  const [message, setMessage] = useState(null)
   const ran = useRef(false)
 
   useEffect(() => {
-    if (!group || ran.current) return
+    if (!activeGroup || ran.current) return
     ran.current = true
     setState('submitting')
 
     async function run() {
-      const before = await fetchBestScore({ groupId: group.id, nickname: group.nickname, gameType, sport })
-      await submitGroupScore({ groupId: group.id, nickname: group.nickname, gameType, sport, era, score, details })
-      const board = await fetchGroupLeaderboard({ groupId: group.id, sport })
-      const mine = board[gameType]?.find((e) => e.nickname === group.nickname)
-      setRank(mine?.rank ?? null)
-      setPriorBest(before?.score ?? 0)
-      setIsNewBest(score > (before?.score ?? 0))
+      const before = await fetchBestScore({ groupId: activeGroup.id, nickname: user.nickname, gameType, sport })
+      const priorBest = before?.score ?? 0
+      const isNewBest = score > priorBest
+
+      await submitGroupScore({ groupId: activeGroup.id, nickname: user.nickname, gameType, sport, era, score, details })
+
+      const board = await fetchGroupLeaderboard({ groupId: activeGroup.id, sport })
+      const entries = (board[gameType] || []).filter((e) => e.played)
+      const mine = entries.find((e) => e.nickname === user.nickname)
+      const myRank = mine?.rank ?? null
+      const leader = entries[0]
+      const chaser = entries[1]
+
+      let text
+      if (myRank === 1) {
+        if (isNewBest) {
+          text = `🔥 New best! ${score.toLocaleString()}pts. Your score is now leading ${activeGroup.name}!`
+        } else if (chaser) {
+          text = `You are leading ${activeGroup.name}! 🏆 ${chaser.nickname} is ${(mine.score - chaser.score).toLocaleString()}pts behind you.`
+        } else {
+          text = `You are leading ${activeGroup.name}! 🏆`
+        }
+      } else if (isNewBest) {
+        const gap = leader ? (leader.score - score).toLocaleString() : null
+        text = leader
+          ? `🔥 New best! ${score.toLocaleString()}pts. ${leader.nickname} leads by ${gap}pts — try another era!`
+          : `🔥 New best! ${score.toLocaleString()}pts on the group leaderboard!`
+      } else {
+        text = `${score.toLocaleString()}pts — not your best yet. Try another era to beat your top score of ${priorBest.toLocaleString()}pts.`
+      }
+
+      setMessage({ text, rank: myRank })
       setState('done')
     }
     run().catch(() => setState('error'))
-  }, [group, gameType, sport, era, score, details])
+  }, [activeGroup, user, gameType, sport, era, score, details])
 
-  if (!group || state === 'idle' || state === 'error') return null
+  if (!activeGroup || state === 'idle' || state === 'error') return null
 
   if (state === 'submitting') {
     return (
       <div className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 text-center text-sm text-[var(--color-text-secondary)]">
-        Submitting to {group.name}…
+        Submitting to {activeGroup.name}…
       </div>
     )
   }
 
   return (
     <div className="mt-4 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 p-3 text-sm">
-      <p className="font-bold">Score submitted to {group.name}! 🎉</p>
-      {rank != null && (
+      <p className="font-bold">Score submitted to {activeGroup.name}! 🎉</p>
+      {message.rank != null && (
         <p className="mt-1 text-[var(--color-text-secondary)]">
-          You're currently {MEDAL[rank] ?? `#${rank}`} in {GAME_LABELS[gameType]}
+          You're currently {MEDAL[message.rank] ?? `#${message.rank}`} in {GAME_LABELS[gameType]}
         </p>
       )}
-      {isNewBest ? (
-        <p className="mt-1 font-semibold text-[var(--color-success)]">🔥 New personal best! {score.toLocaleString()}pts on the group leaderboard.</p>
-      ) : (
-        <p className="mt-1 text-[var(--color-text-secondary)]">
-          {score.toLocaleString()}pts — not your best yet. Try another era to beat your top score of {priorBest.toLocaleString()}pts.
-        </p>
-      )}
+      <p className="mt-1 font-semibold">{message.text}</p>
       <Link to="/groups" className="mt-2 inline-block font-bold text-[var(--color-primary)] hover:underline">
         View Group Leaderboard →
       </Link>
