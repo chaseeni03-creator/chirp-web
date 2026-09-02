@@ -28,6 +28,7 @@ export default function ChirpGuess() {
   const [error, setError] = useState(null)
   const [answer, setAnswer] = useState(null)
   const [rows, setRows] = useState([])
+  const [submitting, setSubmitting] = useState(false)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
 
@@ -82,7 +83,16 @@ export default function ChirpGuess() {
     setFinished(result)
   }
 
-  function handleSelect(player) {
+  async function handleSelect(selected) {
+    setSubmitting(true)
+    // The search dropdown only returns id/full_name/position/current_team —
+    // every other tile (conference, division, jersey, height, weight, age,
+    // draft round, college) needs the full row or it silently compares
+    // against undefined and falls back to grey.
+    const { data: full } = await supabase.from(tables.players).select(fields).eq('id', selected.id).single()
+    const player = full || selected
+    setSubmitting(false)
+
     const tiles = compareChirpGuess(sport, player, answer)
     const row = { player, tiles }
     const nextRows = [...rows, row]
@@ -117,7 +127,7 @@ export default function ChirpGuess() {
         Guess {"today's"} mystery {SPORT_META[sport].label} player. {MAX_GUESSES - rows.length} guesses left.
       </p>
 
-      <PlayerSearchInput table={tables.players} onSelect={handleSelect} placeholder="Type a player name…" />
+      <PlayerSearchInput table={tables.players} onSelect={handleSelect} placeholder="Type a player name…" disabled={submitting} />
 
       <div className="mt-6 space-y-2">
         {rows.map((row, i) => (

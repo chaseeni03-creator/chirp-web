@@ -2,6 +2,13 @@
 // lib/features/games/models/chirp_guess_models.dart (ChirpGuessPlayer.compare
 // + per-tile builders). Field lists mirror exactly what the mobile factories
 // (fromNflPlayers/fromMlbPlayers/fromNbaPlayers) read.
+//
+// NFL's CONFERENCE/DIVISION tiles are an intentional web-only deviation from
+// mobile's current-value-only match: green if the two players' careers ever
+// shared a conference/division (using current_team + previous_teams), grey
+// otherwise, no orange — per explicit user request.
+
+import { nflResolveTeam, nflCanonicalCode } from './statLine'
 
 export const CHIRP_GUESS_FIELDS = {
   nfl: 'id, full_name, position, current_team, previous_teams, conference, division, jersey_number, height, weight, birth_date, draft_round, college',
@@ -244,6 +251,26 @@ function nflGroupsFor(position) {
   return Object.entries(NFL_POSITION_GROUPS).filter(([, list]) => list.includes(p)).map(([name]) => name)
 }
 
+/** Every team code (current + previous, canonicalized) a player's ever been on. */
+function nflTeamsEverPlayedFor(player) {
+  return new Set([
+    ...(player.current_team ? [nflCanonicalCode(player.current_team)] : []),
+    ...(player.previous_teams || []).map(nflCanonicalCode),
+  ])
+}
+
+function nflConferencesEverPlayedIn(player) {
+  const set = new Set([...nflTeamsEverPlayedFor(player)].map((t) => nflResolveTeam(t)?.conference).filter(Boolean))
+  if (player.conference) set.add(player.conference)
+  return set
+}
+
+function nflDivisionsEverPlayedIn(player) {
+  const set = new Set([...nflTeamsEverPlayedFor(player)].map((t) => nflResolveTeam(t)?.division).filter(Boolean))
+  if (player.division) set.add(player.division)
+  return set
+}
+
 function nflTeamTile(g, m) {
   const gPrev = g.previous_teams || []
   const mPrev = m.previous_teams || []
@@ -266,13 +293,19 @@ function nflPositionTile(g, m) {
 export function compareNfl(g, m) {
   return [
     nflTeamTile(g, m),
-    { label: 'CONF', value: g.conference ?? '?', color: g.conference != null && g.conference === m.conference ? 'green' : 'grey', arrow: null },
     (() => {
-      let color
-      if (g.division != null && g.division === m.division) color = 'green'
-      else if (g.conference != null && g.conference === m.conference) color = 'orange'
-      else color = 'grey'
-      return { label: 'DIV', value: g.division ?? '?', color, arrow: null }
+      const gConfs = nflConferencesEverPlayedIn(g)
+      const mConfs = nflConferencesEverPlayedIn(m)
+      const color = [...gConfs].some((c) => mConfs.has(c)) ? 'green' : 'grey'
+      const value = g.conference ?? nflResolveTeam(g.current_team)?.conference ?? [...gConfs][0] ?? '?'
+      return { label: 'CONF', value, color, arrow: null }
+    })(),
+    (() => {
+      const gDivs = nflDivisionsEverPlayedIn(g)
+      const mDivs = nflDivisionsEverPlayedIn(m)
+      const color = [...gDivs].some((d) => mDivs.has(d)) ? 'green' : 'grey'
+      const value = g.division ?? nflResolveTeam(g.current_team)?.division ?? [...gDivs][0] ?? '?'
+      return { label: 'DIV', value, color, arrow: null }
     })(),
     { label: '#', value: g.jersey_number ?? '?', color: numericColor(g.jersey_number, m.jersey_number, 5), arrow: arrowFor(g.jersey_number, m.jersey_number) },
     nflPositionTile(g, m),
