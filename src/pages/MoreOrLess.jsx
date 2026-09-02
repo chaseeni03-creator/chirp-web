@@ -11,6 +11,7 @@ import {
 } from '../lib/moreOrLess'
 import GameShell from '../components/GameShell'
 import ShareResult from '../components/ShareResult'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 export default function MoreOrLess() {
   const { sport } = useSport()
@@ -259,6 +260,13 @@ export default function MoreOrLess() {
           </div>
         </div>
         <ShareResult text={buildShareText('more-or-less', todayStr(), payload)} />
+        <GroupScoreBanner
+          gameType="more-or-less"
+          sport={sport}
+          era={sport === 'nfl' ? era : mode}
+          score={result.score}
+          details={`${result.roundsPlayed} rounds`}
+        />
         <button onClick={() => setPhase('start')} className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 font-semibold">
           Play Again
         </button>

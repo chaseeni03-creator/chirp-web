@@ -8,6 +8,7 @@ import { gridCategoryLabel, validateGridCategory, GRID_PLAYER_FIELDS, GRID_SCORI
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 export default function Grid() {
   const { sport } = useSport()
@@ -108,6 +109,7 @@ export default function Grid() {
         </div>
         <div className="mt-6">
           <ShareResult text={buildShareText('grid', today, finished)} />
+          <GroupScoreBanner gameType="grid" sport={sport} era="all_time" score={finished.totalScore} details={`${finished.correctCount}/9 squares`} />
         </div>
       </GameShell>
     )

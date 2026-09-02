@@ -8,6 +8,7 @@ import { CHIRP_GUESS_FIELDS, CHIRP_GUESS_HEADERS, compareChirpGuess } from '../l
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 const MAX_GUESSES = 8
 
@@ -77,7 +78,11 @@ export default function ChirpGuess() {
   }, [today, sport, gameKey, tables.chirpGuessDaily, tables.players, fields])
 
   function finish(won, allRows) {
-    const result = { rows: allRows.map((r) => r.tiles), won, guessCount: allRows.length, maxGuesses: MAX_GUESSES }
+    // Chirp Guess has no built-in point system (it's pure guess-count, like
+    // Wordle) — this score exists only so the game has something to compare
+    // on a group leaderboard: fewer guesses scores higher, a loss scores 0.
+    const groupScore = won ? Math.max(100, 1000 - (allRows.length - 1) * 100) : 0
+    const result = { rows: allRows.map((r) => r.tiles), won, guessCount: allRows.length, maxGuesses: MAX_GUESSES, groupScore }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, won)
     setFinished(result)
@@ -117,6 +122,13 @@ export default function ChirpGuess() {
           {finished.won ? `Solved in ${finished.guessCount}/${MAX_GUESSES}! 🎉` : "Didn't get it today."}
         </p>
         <ShareResult text={buildShareText('chirp-guess', today, finished)} />
+        <GroupScoreBanner
+          gameType="chirp-guess"
+          sport={sport}
+          era="all_time"
+          score={finished.groupScore}
+          details={`${finished.guessCount}/${finished.maxGuesses} guesses`}
+        />
       </GameShell>
     )
   }

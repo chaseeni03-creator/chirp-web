@@ -13,6 +13,7 @@ import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 const NFL_HINT_PLAYER_FIELDS = 'id, full_name, position, current_team, previous_teams, conference, season_first, season_last'
 const PLAYER_FIELDS = {
@@ -236,6 +237,13 @@ export default function StatLine() {
           <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">Teammate that season: {finished.teammate}</p>
         )}
         <ShareResult text={buildShareText('stat-line', today, finished)} />
+        <GroupScoreBanner
+          gameType="stat-line"
+          sport={sport}
+          era={era}
+          score={finished.score}
+          details={`${finished.cluesUsed}/${finished.maxClues} clues`}
+        />
       </>
     )
   }

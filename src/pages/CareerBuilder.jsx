@@ -12,6 +12,7 @@ import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -292,6 +293,13 @@ export default function CareerBuilder() {
           Order: {finished.grades.map((g) => GRADE_EMOJI[g]).join('')} {finished.greenCount}/5 correct
         </p>
         <ShareResult text={buildShareText('career-builder', today, finished)} />
+        <GroupScoreBanner
+          gameType="career-builder"
+          sport={sport}
+          era={era}
+          score={finished.totalScore}
+          details={`${finished.greenCount}/5 order`}
+        />
       </>
     )
   }

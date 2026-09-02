@@ -11,6 +11,7 @@ import {
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 const SECTIONS = {
   nfl: [{ key: 'offense', label: 'OFFENSE' }, { key: 'defense', label: 'DEFENSE' }],
@@ -147,6 +148,7 @@ export default function Lineup() {
           {finished.bonuses.perfectB > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">Perfect {sections ? sections[1].label : ''}</span><span className="font-bold">+{finished.bonuses.perfectB}</span></div>}
         </div>
         <ShareResult text={buildShareText('lineup', today, finished)} />
+        <GroupScoreBanner gameType="lineup" sport={sport} era="all_time" score={finished.totalScore} details={finished.scopeLabel} />
 
         <div className="mt-6 space-y-4">
           {(sections || [{ key: null, label: null }]).map((sec) => (

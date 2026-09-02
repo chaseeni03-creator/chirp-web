@@ -9,6 +9,7 @@ import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
+import GroupScoreBanner from '../components/GroupScoreBanner'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -219,6 +220,13 @@ export default function Progression() {
           </div>
         </div>
         <ShareResult text={buildShareText('progression', today, finished)} />
+        <GroupScoreBanner
+          gameType="progression"
+          sport={sport}
+          era={era}
+          score={finished.finalScore}
+          details={`Year ${finished.seasonsRevealed}`}
+        />
       </>
     )
   }
