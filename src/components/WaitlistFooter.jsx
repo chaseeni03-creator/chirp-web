@@ -1,26 +1,35 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
 
 export default function WaitlistFooter() {
   const [email, setEmail] = useState('')
-  const [status, setStatus] = useState('idle') // idle | loading | done | error
+  const [status, setStatus] = useState('idle') // idle | loading | done | error | rateLimited
 
   async function submit(e) {
     e.preventDefault()
     if (!email.trim()) return
     setStatus('loading')
-    const { error } = await supabase
-      .from('email_waitlist')
-      .insert({ email: email.trim().toLowerCase(), source: 'web' })
-
-    // A unique-violation just means they already signed up — treat as success.
-    if (error && error.code !== '23505') {
-      console.error(error)
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      if (res.status === 429) {
+        setStatus('rateLimited')
+        return
+      }
+      if (!res.ok) {
+        setStatus('error')
+        return
+      }
+      // The endpoint always reports success, whether the email was new or
+      // already on the list, so this UI can't be used to tell them apart.
+      setStatus('done')
+    } catch (err) {
+      console.error(err)
       setStatus('error')
-      return
     }
-    setStatus('done')
   }
 
   return (
@@ -58,6 +67,11 @@ export default function WaitlistFooter() {
           {status === 'error' && (
             <p className="mt-2 text-xs text-[var(--color-primary)]">
               Something went wrong — try again in a moment.
+            </p>
+          )}
+          {status === 'rateLimited' && (
+            <p className="mt-2 text-xs text-[var(--color-primary)]">
+              Too many attempts — try again in an hour.
             </p>
           )}
         </div>

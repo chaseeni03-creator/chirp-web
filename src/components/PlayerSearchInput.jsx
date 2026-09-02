@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
+// Strip HTML/script tags before the query reaches Supabase.
+function sanitizeQuery(raw) {
+  return raw.replace(/<[^>]*>/g, '').trim()
+}
+
 /** Autocomplete text input searching the given players table by name. Calls onSelect(player) on pick. */
 export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled }) {
   const [query, setQuery] = useState('')
@@ -9,7 +14,8 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
   const boxRef = useRef(null)
 
   useEffect(() => {
-    if (query.trim().length < 2) {
+    const cleaned = sanitizeQuery(query)
+    if (cleaned.length < 2) {
       setResults([])
       return
     }
@@ -18,7 +24,7 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
       const { data } = await supabase
         .from(table)
         .select('id, full_name, position, current_team')
-        .ilike('full_name', `%${query.trim()}%`)
+        .ilike('full_name', `%${cleaned}%`)
         .order('full_name')
         .limit(8)
       if (!cancelled) setResults(data || [])
