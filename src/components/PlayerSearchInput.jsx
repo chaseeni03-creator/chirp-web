@@ -6,6 +6,37 @@ function sanitizeQuery(raw) {
   return raw.replace(/<[^>]*>/g, '').trim()
 }
 
+// "T.J. Watt" / "D.J. Moore" / "C.J. Stroud" typed as "tj watt" / "dj moore"
+// / "cj stroud" should still find the real player. Postgres ilike can't
+// strip punctuation from the stored column, so a bare 2-letter word that
+// looks like initials (tj, dj, cj, oj, aj — every real example is exactly
+// 2 letters) gets a wildcard inserted between its letters: "tj" becomes
+// "t%j%", which still matches a plain "tj" (the wildcard can match zero
+// characters) but now also matches "t.j." via backtracking. This is
+// deliberately scoped to short 2-letter tokens only — doing this to every
+// word (tried first) also loosened normal surnames like "Watt" into
+// matching unrelated look-alikes ("Wyatt", "Swancutt") that then crowded
+// the real result out of the top 8 once sorted alphabetically.
+function looksLikeInitials(word) {
+  return /^[a-zA-Z]{2}$/.test(word)
+}
+
+function toIlikeToken(word) {
+  // A trailing % too, not just between the two letters — "T.J." has a
+  // period after BOTH letters, so "tj" must become "t%j%" (wildcard after
+  // each), not "t%j" (wildcard only between them, missing the one that
+  // needs to absorb the period right before the following space).
+  return looksLikeInitials(word) ? `${word.split('').join('%')}%` : word
+}
+
+function buildSearchPattern(cleaned) {
+  return cleaned
+    .split(/\s+/)
+    .filter(Boolean)
+    .map(toIlikeToken)
+    .join(' ')
+}
+
 /** Autocomplete text input searching the given players table by name. Calls onSelect(player) on pick. */
 export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled }) {
   const [query, setQuery] = useState('')
@@ -21,10 +52,11 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
     }
     let cancelled = false
     const t = setTimeout(async () => {
+      const pattern = buildSearchPattern(cleaned)
       const { data } = await supabase
         .from(table)
         .select('id, full_name, position, current_team')
-        .ilike('full_name', `%${cleaned}%`)
+        .ilike('full_name', `%${pattern}%`)
         .order('full_name')
         .limit(8)
       if (!cancelled) setResults(data || [])
