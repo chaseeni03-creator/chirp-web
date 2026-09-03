@@ -14,7 +14,11 @@ const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no O/0/I/1 — avoids m
 const CODE_LENGTH = 4
 const MAX_MEMBERS = 20
 const MAX_GROUPS_PER_USER = 3
+const MAX_GROUPS_CREATED = 3
+const MAX_FAILED_JOINS_PER_HOUR = 5
 const LS_KEY = 'chirp-web:user'
+const LS_GUEST_CREATED_KEY = 'chirp-web:guest-groups-created' // soft, client-side only — guests have no server identity to enforce this against
+const LS_FAILED_JOINS_KEY = 'chirp-web:failed-joins'
 
 export const GAME_LABELS = {
   'chirp-guess': 'Chirp Guess',
@@ -43,6 +47,67 @@ export class NicknameTakenError extends Error {
       : `${nickname} is already taken in this group — choose a different nickname.`)
     this.nickname = nickname
     this.canUsePin = canUsePin
+  }
+}
+
+// ── Input sanitization ───────────────────────────────────────────────────────
+
+export function sanitizeNickname(input) {
+  return (input || '')
+    .replace(/<[^>]*>/g, '') // strip HTML/script tags
+    .replace(/[^a-zA-Z0-9 ]/g, '') // alphanumeric + spaces only
+    .trim()
+    .slice(0, 20)
+}
+
+export function sanitizeGroupName(input) {
+  return (input || '')
+    .replace(/<[^>]*>/g, '')
+    .trim()
+    .slice(0, 30)
+}
+
+// ── Soft, client-side rate limits ────────────────────────────────────────────
+// Guests have no stable server-side identity (no auth.uid()), so these can
+// only ever be per-browser deterrents, not real enforcement — same trust
+// level already established for guest PINs. Google users additionally get a
+// real, server-verified check (created_by count) in createGroup below.
+
+function guestGroupsCreatedCount() {
+  try {
+    return parseInt(localStorage.getItem(LS_GUEST_CREATED_KEY) || '0', 10)
+  } catch {
+    return 0
+  }
+}
+
+function bumpGuestGroupsCreated() {
+  try {
+    localStorage.setItem(LS_GUEST_CREATED_KEY, String(guestGroupsCreatedCount() + 1))
+  } catch {
+    /* ignore */
+  }
+}
+
+function recentFailedJoinCount() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LS_FAILED_JOINS_KEY) || '[]')
+    const hourAgo = Date.now() - 60 * 60 * 1000
+    return raw.filter((t) => t > hourAgo).length
+  } catch {
+    return 0
+  }
+}
+
+function recordFailedJoin() {
+  try {
+    const hourAgo = Date.now() - 60 * 60 * 1000
+    const raw = JSON.parse(localStorage.getItem(LS_FAILED_JOINS_KEY) || '[]')
+    const kept = raw.filter((t) => t > hourAgo)
+    kept.push(Date.now())
+    localStorage.setItem(LS_FAILED_JOINS_KEY, JSON.stringify(kept))
+  } catch {
+    /* ignore */
   }
 }
 
@@ -120,9 +185,36 @@ export async function signOutGoogle() {
   await supabase.auth.signOut()
 }
 
-export async function getGoogleSession() {
+/** Permanently deletes the signed-in Google account and all its group data (server-side — see api/delete-account.js). */
+export async function deleteGoogleAccount() {
   const { data } = await supabase.auth.getSession()
-  return data.session ?? null
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not signed in')
+
+  const res = await fetch('/api/delete-account', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error || 'Could not delete your account')
+  }
+  await supabase.auth.signOut()
+}
+
+export async function getGoogleSession() {
+  // Right after the OAuth redirect lands with tokens in the URL hash, mobile
+  // browsers can be slow to finish processing them — retry briefly in that
+  // specific case instead of giving up on the first empty check. On a normal
+  // page load (no hash), this is a single check with no added delay.
+  const cameFromOAuthRedirect = window.location.hash.includes('access_token')
+  const attempts = cameFromOAuthRedirect ? 3 : 1
+  for (let i = 0; i < attempts; i++) {
+    const { data } = await supabase.auth.getSession()
+    if (data.session) return data.session
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1000))
+  }
+  return null
 }
 
 export function onAuthChange(callback) {
@@ -186,23 +278,45 @@ async function generateUniqueCode() {
  * Returns { id, code, name } — call rememberGroup + storeUser with the result yourself.
  */
 export async function createGroup({ groupName, nickname, isPublic = false, identity }) {
+  const cleanName = sanitizeGroupName(groupName)
+  const cleanNickname = sanitizeNickname(nickname)
+  if (!cleanName) throw new Error('Enter a group name')
+  if (!cleanNickname) throw new Error('Enter a nickname')
+
+  if (identity.type === 'google') {
+    const { count } = await supabase
+      .from('web_groups')
+      .select('id', { count: 'exact', head: true })
+      .eq('created_by', identity.userId)
+    if ((count || 0) >= MAX_GROUPS_CREATED) throw new Error(`You've already created ${MAX_GROUPS_CREATED} groups — leave or delete one first`)
+  } else if (guestGroupsCreatedCount() >= MAX_GROUPS_CREATED) {
+    throw new Error(`You've already created ${MAX_GROUPS_CREATED} groups on this device — leave or delete one first`)
+  }
+
   const code = await generateUniqueCode()
   const { data: group, error } = await supabase
     .from('web_groups')
-    .insert({ group_code: code, group_name: groupName.trim(), is_public: isPublic })
+    .insert({
+      group_code: code,
+      group_name: cleanName,
+      is_public: isPublic,
+      created_by: identity.type === 'google' ? identity.userId : null,
+    })
     .select()
     .single()
   if (error) throw error
 
   const memberRow = {
     group_id: group.id,
-    nickname: nickname.trim(),
+    nickname: cleanNickname,
     is_guest: identity.type === 'guest',
     user_id: identity.type === 'google' ? identity.userId : null,
     pin_hash: identity.type === 'guest' ? await hashPin(identity.pin) : null,
   }
   const { error: memberErr } = await supabase.from('web_group_members').insert(memberRow)
   if (memberErr) throw memberErr
+
+  if (identity.type === 'guest') bumpGuestGroupsCreated()
 
   return { id: group.id, code: group.group_code, name: group.group_name }
 }
@@ -213,11 +327,19 @@ export async function createGroup({ groupName, nickname, isPublic = false, ident
  * guests, the given PIN doesn't match the existing guest row).
  */
 export async function joinGroup({ code, nickname, identity }) {
+  if (recentFailedJoinCount() >= MAX_FAILED_JOINS_PER_HOUR) {
+    throw new Error('Too many failed join attempts — try again in an hour')
+  }
+
   const clean = normalizeCode(code)
   const { data: group, error } = await supabase.from('web_groups').select('*').eq('group_code', clean).maybeSingle()
-  if (error || !group) throw new Error("That group code doesn't exist")
+  if (error || !group) {
+    recordFailedJoin()
+    throw new Error("That group code doesn't exist")
+  }
 
-  const trimmedNickname = nickname.trim()
+  const trimmedNickname = sanitizeNickname(nickname)
+  if (!trimmedNickname) throw new Error('Enter a nickname')
   const { data: existing } = await supabase
     .from('web_group_members')
     .select('*')
@@ -232,12 +354,16 @@ export async function joinGroup({ code, nickname, identity }) {
     }
     if (identity.type === 'guest' && existing.is_guest) {
       const givenHash = await hashPin(identity.pin)
-      if (givenHash !== existing.pin_hash) throw new NicknameTakenError(trimmedNickname, true)
+      if (givenHash !== existing.pin_hash) {
+        recordFailedJoin()
+        throw new NicknameTakenError(trimmedNickname, true)
+      }
       await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
       return { id: group.id, code: group.group_code, name: group.group_name }
     }
     // Belongs to someone else entirely (different Google account, or a guest
     // and this join is Google, or vice versa) — no PIN can resolve that.
+    recordFailedJoin()
     throw new NicknameTakenError(trimmedNickname, identity.type === 'guest' && existing.is_guest)
   }
 
@@ -284,6 +410,14 @@ export async function leaveGroup({ groupId, nickname }) {
     .maybeSingle()
   if (member) {
     await supabase.from('web_group_members').delete().eq('id', member.id)
+  }
+
+  // If that was the last member, clean up the now-empty group instead of
+  // leaving a ghost row behind — no "ownership" concept exists anywhere else
+  // in this app, so there's nothing to transfer regardless of who left.
+  const { count } = await supabase.from('web_group_members').select('id', { count: 'exact', head: true }).eq('group_id', groupId)
+  if ((count || 0) === 0) {
+    await supabase.from('web_groups').delete().eq('id', groupId)
   }
 }
 
@@ -353,11 +487,12 @@ export async function computeStreak(groupId, nickname) {
 }
 
 export async function fetchGroupMembers(groupId) {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('web_group_members')
     .select('id, nickname, is_guest, user_id, last_active, joined_at')
     .eq('group_id', groupId)
     .order('joined_at')
+  if (error) throw error
   if (!data) return []
   return Promise.all(
     data.map(async (m) => ({
@@ -410,10 +545,11 @@ function eraLabel(sport, eraKey) {
  * row counts, with that row's era shown as the badge.
  */
 export async function fetchGroupLeaderboard({ groupId, sport, gameDate = todayStr() }) {
-  const [{ data: scores }, { data: members }] = await Promise.all([
+  const [{ data: scores, error: scoresErr }, { data: members, error: membersErr }] = await Promise.all([
     supabase.from('web_group_scores').select('*').eq('group_id', groupId).eq('sport', sport).eq('game_date', gameDate),
     supabase.from('web_group_members').select('nickname').eq('group_id', groupId),
   ])
+  if (scoresErr || membersErr) throw scoresErr || membersErr
 
   const allNicknames = [...new Set((members || []).map((m) => m.nickname))]
   const byGame = {}
@@ -454,12 +590,26 @@ export async function fetchBestScore({ groupId, nickname, gameType, sport, gameD
   return data || null
 }
 
-export function subscribeToGroupScores(groupId, onChange) {
-  const channel = supabase
-    .channel(`web_group_scores:${groupId}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'web_group_scores', filter: `group_id=eq.${groupId}` }, onChange)
-    .subscribe()
-  return () => supabase.removeChannel(channel)
+/**
+ * `onError` fires if the realtime channel can't connect at all (some mobile
+ * browsers restrict WebSockets, e.g. in private-browsing modes) — callers
+ * should fall back to polling when that happens. Never throws: a broken
+ * subscription degrades to "no live updates," it doesn't crash the page.
+ */
+export function subscribeToGroupScores(groupId, onChange, onError) {
+  try {
+    const channel = supabase
+      .channel(`web_group_scores:${groupId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'web_group_scores', filter: `group_id=eq.${groupId}` }, onChange)
+      .subscribe((status) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') onError?.()
+      })
+    return () => supabase.removeChannel(channel)
+  } catch (err) {
+    console.error('Realtime subscription failed:', err)
+    onError?.()
+    return () => {}
+  }
 }
 
 // ── Share text ───────────────────────────────────────────────────────────────

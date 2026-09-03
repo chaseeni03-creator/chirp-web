@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useGroup } from '../context/GroupContext'
 import {
   signInWithGoogle, createGroup, joinGroup, displayCode, inviteLink, rememberGroup,
-  MAX_MEMBERS, MAX_GROUPS_PER_USER, NicknameTakenError,
+  sanitizeNickname, sanitizeGroupName, MAX_MEMBERS, MAX_GROUPS_PER_USER, NicknameTakenError,
 } from '../lib/groups'
 import { copyToClipboard } from '../lib/share'
 import { todayStr } from '../lib/supabase'
@@ -193,8 +193,8 @@ export default function GroupOnboarding({ prefillCode, onDone }) {
           <input
             type="text"
             value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={24}
+            onChange={(e) => setNickname(sanitizeNickname(e.target.value))}
+            maxLength={20}
             placeholder="e.g. Greg Joseph"
             className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
           />
@@ -232,8 +232,8 @@ export default function GroupOnboarding({ prefillCode, onDone }) {
           <input
             type="text"
             value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            maxLength={24}
+            onChange={(e) => setNickname(sanitizeNickname(e.target.value))}
+            maxLength={20}
             placeholder="e.g. Greg Joseph"
             className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
           />
@@ -280,8 +280,8 @@ export default function GroupOnboarding({ prefillCode, onDone }) {
         <input
           type="text"
           value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          maxLength={24}
+          onChange={(e) => setNickname(sanitizeNickname(e.target.value))}
+          maxLength={20}
           className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
         />
 
@@ -347,8 +347,8 @@ export default function GroupOnboarding({ prefillCode, onDone }) {
             type="text"
             autoFocus
             value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            maxLength={40}
+            onChange={(e) => setGroupName(sanitizeGroupName(e.target.value))}
+            maxLength={30}
             placeholder="G's Crew"
             className="mt-1 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
           />

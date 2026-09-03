@@ -15,31 +15,49 @@ import {
   GAME_LABELS, GAME_ORDER, GAME_PATHS,
   displayCode, inviteLink, buildInviteMessage, smsShareUrl, whatsappShareUrl, twitterShareUrl,
   fetchGroupLeaderboard, fetchGroupMembers, fetchPublicGroups,
-  subscribeToGroupScores, leaveGroup, joinGroup, rememberGroup, MAX_MEMBERS, MAX_GROUPS_PER_USER,
+  subscribeToGroupScores, leaveGroup, joinGroup, rememberGroup, deleteGoogleAccount,
+  MAX_MEMBERS, MAX_GROUPS_PER_USER,
 } from '../lib/groups'
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 export default function GroupPage() {
-  const { user, saveUser, leaveOneGroup, setActiveGroup, activeGroup, sessionChecked } = useGroup()
+  const { user, saveUser, leaveOneGroup, setActiveGroup, activeGroup, sessionChecked, googleSession } = useGroup()
   const { sport } = useSport()
   const [tab, setTab] = useState('scores')
   const [board, setBoard] = useState(null)
+  const [boardError, setBoardError] = useState(false)
   const [members, setMembers] = useState(null)
+  const [membersError, setMembersError] = useState(false)
   const [showAddGroup, setShowAddGroup] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [showDeleteAccountConfirm, setShowDeleteAccountConfirm] = useState(false)
+  const [deletingAccount, setDeletingAccount] = useState(false)
+  const [deleteAccountError, setDeleteAccountError] = useState(null)
   const [toastRow, setToastRow] = useState(null)
 
   const needsWelcomeBack = user?.type === 'guest' && activeGroup && user.lastConfirmedDate !== todayStr()
 
   const loadBoard = useCallback(() => {
     if (!activeGroup) return
-    fetchGroupLeaderboard({ groupId: activeGroup.id, sport }).then(setBoard)
+    setBoardError(false)
+    fetchGroupLeaderboard({ groupId: activeGroup.id, sport })
+      .then(setBoard)
+      .catch((err) => {
+        console.error('Leaderboard load error:', err)
+        setBoardError(true)
+      })
   }, [activeGroup, sport])
 
   const loadMembers = useCallback(() => {
     if (!activeGroup) return
-    fetchGroupMembers(activeGroup.id).then(setMembers)
+    setMembersError(false)
+    fetchGroupMembers(activeGroup.id)
+      .then(setMembers)
+      .catch((err) => {
+        console.error('Members load error:', err)
+        setMembersError(true)
+      })
   }, [activeGroup])
 
   useEffect(() => {
@@ -52,14 +70,26 @@ export default function GroupPage() {
 
   useEffect(() => {
     if (!activeGroup || needsWelcomeBack) return undefined
-    const unsubscribe = subscribeToGroupScores(activeGroup.id, (payload) => {
-      loadBoard()
-      if (tab === 'members') loadMembers()
-      if (payload.eventType === 'INSERT' && payload.new.nickname !== user?.nickname) {
-        setToastRow(payload.new)
+    let pollId = null
+    const unsubscribe = subscribeToGroupScores(
+      activeGroup.id,
+      (payload) => {
+        loadBoard()
+        if (tab === 'members') loadMembers()
+        if (payload.eventType === 'INSERT' && payload.new.nickname !== user?.nickname) {
+          setToastRow(payload.new)
+        }
+      },
+      () => {
+        // Realtime couldn't connect (some mobile browsers restrict
+        // WebSockets) — poll instead so the leaderboard still updates.
+        if (!pollId) pollId = setInterval(() => loadBoard(), 30000)
       }
-    })
-    return unsubscribe
+    )
+    return () => {
+      unsubscribe()
+      if (pollId) clearInterval(pollId)
+    }
   }, [activeGroup, needsWelcomeBack, loadBoard, loadMembers, tab, user])
 
   // Wait for the initial getSession() check before deciding what to show —
@@ -84,6 +114,18 @@ export default function GroupPage() {
     await leaveGroup({ groupId: activeGroup.id, nickname: user.nickname })
     leaveOneGroup(activeGroup.id)
     setShowLeaveConfirm(false)
+  }
+
+  async function handleDeleteAccount() {
+    setDeletingAccount(true)
+    setDeleteAccountError(null)
+    try {
+      await deleteGoogleAccount()
+      saveUser(null)
+    } catch (err) {
+      setDeleteAccountError(err.message || 'Could not delete your account')
+      setDeletingAccount(false)
+    }
   }
 
   return (
@@ -140,11 +182,18 @@ export default function GroupPage() {
       </div>
 
       {tab === 'scores' && (
-        <ScoresTab board={board} sport={sport} />
+        <ScoresTab board={board} sport={sport} error={boardError} onRetry={loadBoard} />
       )}
 
       {tab === 'members' && (
-        <MembersTab members={members} onLeaveClick={() => setShowLeaveConfirm(true)} />
+        <MembersTab
+          members={members}
+          error={membersError}
+          onRetry={loadMembers}
+          onLeaveClick={() => setShowLeaveConfirm(true)}
+          isGoogleUser={!!googleSession}
+          onDeleteAccountClick={() => setShowDeleteAccountConfirm(true)}
+        />
       )}
 
       {tab === 'invite' && <InviteTab group={activeGroup} />}
@@ -155,13 +204,37 @@ export default function GroupPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setShowLeaveConfirm(false)}>
           <div className="w-full max-w-xs rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center" onClick={(e) => e.stopPropagation()}>
             <p className="font-bold">Leave {activeGroup.name}?</p>
-            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Your scores will be removed.</p>
+            <p className="mt-1 text-sm text-[var(--color-text-secondary)]">Your scores will be removed from this group's leaderboard.</p>
             <div className="mt-4 flex gap-2">
               <button onClick={() => setShowLeaveConfirm(false)} className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-2.5 text-sm font-semibold">
                 Cancel
               </button>
               <button onClick={handleLeave} className="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-sm font-bold text-white">
-                Leave
+                Leave Group
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDeleteAccountConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => !deletingAccount && setShowDeleteAccountConfirm(false)}>
+          <div className="w-full max-w-xs rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-center" onClick={(e) => e.stopPropagation()}>
+            <p className="font-bold">Delete your Chirp Sports account?</p>
+            <p className="mt-2 text-sm text-[var(--color-text-secondary)]">This will permanently delete:</p>
+            <ul className="mt-1 list-disc pl-5 text-left text-sm text-[var(--color-text-secondary)]">
+              <li>Your group memberships</li>
+              <li>Your scores and streaks</li>
+              <li>Your account data</li>
+            </ul>
+            <p className="mt-2 text-sm font-bold text-[var(--color-primary)]">This cannot be undone.</p>
+            {deleteAccountError && <p className="mt-2 text-xs text-[var(--color-primary)]">{deleteAccountError}</p>}
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => setShowDeleteAccountConfirm(false)} disabled={deletingAccount} className="flex-1 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-2.5 text-sm font-semibold disabled:opacity-50">
+                Cancel
+              </button>
+              <button onClick={handleDeleteAccount} disabled={deletingAccount} className="flex-1 rounded-xl bg-[var(--color-primary)] py-2.5 text-sm font-bold text-white disabled:opacity-50">
+                {deletingAccount ? 'Deleting…' : 'Delete Account'}
               </button>
             </div>
           </div>
@@ -173,7 +246,7 @@ export default function GroupPage() {
   )
 }
 
-function ScoresTab({ board, sport }) {
+function ScoresTab({ board, sport, error, onRetry }) {
   return (
     <>
       <p className="mb-3 text-xs text-[var(--color-text-tertiary)]">
@@ -181,7 +254,14 @@ function ScoresTab({ board, sport }) {
       </p>
       <h2 className="mb-2 text-sm font-bold text-[var(--color-text-tertiary)]">TODAY'S SCORES</h2>
 
-      {!board ? (
+      {error ? (
+        <div className="text-center">
+          <p className="text-[var(--color-text-secondary)]">Could not load the leaderboard.</p>
+          <button onClick={onRetry} className="mt-3 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white">
+            Try Again
+          </button>
+        </div>
+      ) : !board ? (
         <p className="text-center text-[var(--color-text-secondary)]">Loading leaderboard…</p>
       ) : (
         <div className="space-y-4">
@@ -224,7 +304,17 @@ function ScoresTab({ board, sport }) {
   )
 }
 
-function MembersTab({ members, onLeaveClick }) {
+function MembersTab({ members, error, onRetry, onLeaveClick, isGoogleUser, onDeleteAccountClick }) {
+  if (error) {
+    return (
+      <div className="text-center">
+        <p className="text-[var(--color-text-secondary)]">Could not load members.</p>
+        <button onClick={onRetry} className="mt-3 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white">
+          Try Again
+        </button>
+      </div>
+    )
+  }
   if (!members) return <p className="text-center text-[var(--color-text-secondary)]">Loading members…</p>
   return (
     <>
@@ -244,6 +334,11 @@ function MembersTab({ members, onLeaveClick }) {
       <button onClick={onLeaveClick} className="mt-6 w-full rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 py-3 text-sm font-bold text-[var(--color-primary)]">
         Leave Group
       </button>
+      {isGoogleUser && (
+        <button onClick={onDeleteAccountClick} className="mt-3 w-full text-center text-xs text-[var(--color-text-tertiary)] underline">
+          Delete my account
+        </button>
+      )}
     </>
   )
 }
