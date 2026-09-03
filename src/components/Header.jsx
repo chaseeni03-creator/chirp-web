@@ -6,11 +6,10 @@ export default function Header() {
     <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
         <span className="w-16 sm:w-20" aria-hidden="true" />
-        <Link to="/" className="flex items-center gap-2 font-extrabold tracking-tight">
-          <span className="text-2xl">🦜</span>
-          <span className="text-lg">
-            <span className="text-[var(--color-primary)]">Chirp</span> Sports
-          </span>
+        <Link to="/" className="flex items-center gap-1.5 font-extrabold tracking-tight">
+          <span className="text-lg text-[var(--color-primary)]">Chirp</span>
+          <img src="/bird-logo.png" alt="" className="h-6 w-6" />
+          <span className="text-lg text-[var(--color-text)]">Sports</span>
         </Link>
         <Link
           to="/groups"
