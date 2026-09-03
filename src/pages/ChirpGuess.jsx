@@ -18,6 +18,54 @@ const tileColor = {
   grey: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)]',
 }
 
+// supabase-js retries a failed network request internally with its own
+// backoff, which can run far longer than feels responsive (observed well
+// past 10s on a real network failure) before ever resolving or rejecting
+// back to caller code — a plain `await` on a flaky connection can leave a
+// button stuck disabled with nothing happening for a long time. Race it
+// against a hard timeout so a slow/hanging attempt fails fast instead.
+function withTimeout(promise, ms) {
+  return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))])
+}
+
+async function fetchFullPlayer(tables, fields, id) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400))
+    try {
+      const { data, error } = await withTimeout(supabase.from(tables.players).select(fields).eq('id', id).single(), 3000)
+      if (!error && data) return data
+    } catch {
+      // network failure or timeout — fall through to the next attempt
+    }
+  }
+  return null
+}
+
+// A row saved before this fetch had retries (or hit one badly enough to
+// exhaust them) can have a guessed player object missing most fields, which
+// shows as tiles permanently stuck on "?" — no amount of reloading fixes
+// that on its own, since restoring saved progress just replays the same bad
+// data. Detect that pattern and re-fetch+recompute those rows on load.
+const CORRUPTION_THRESHOLD = 4
+function looksCorrupted(row) {
+  const questionMarks = row.tiles.filter((t) => t.value === '?').length
+  return questionMarks >= CORRUPTION_THRESHOLD
+}
+
+async function healCorruptedRows(sport, tables, fields, rows, answer) {
+  let changed = false
+  const healed = await Promise.all(
+    rows.map(async (row) => {
+      if (!looksCorrupted(row)) return row
+      const full = await fetchFullPlayer(tables, fields, row.player.id)
+      if (!full) return row
+      changed = true
+      return { player: full, tiles: compareChirpGuess(sport, full, answer) }
+    })
+  )
+  return { healed, changed }
+}
+
 export default function ChirpGuess() {
   const { sport } = useSport()
   const gameKey = `${sport}-chirp-guess`
@@ -30,6 +78,7 @@ export default function ChirpGuess() {
   const [answer, setAnswer] = useState(null)
   const [rows, setRows] = useState([])
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
 
@@ -64,18 +113,22 @@ export default function ChirpGuess() {
       }
 
       const { data: player } = await supabase.from(tables.players).select(fields).eq('id', daily.player_id).single()
-      if (!cancelled) {
-        setAnswer(player)
-        const saved = getInProgress(gameKey, today)
-        if (saved) setRows(saved.rows || [])
-        setLoading(false)
+      if (cancelled) return
+      setAnswer(player)
+      const saved = getInProgress(gameKey, today)
+      if (saved?.rows?.length) {
+        const { healed, changed } = await healCorruptedRows(sport, tables, fields, saved.rows, player)
+        if (cancelled) return
+        setRows(healed)
+        if (changed) saveInProgress(gameKey, today, { rows: healed })
       }
+      setLoading(false)
     }
     load()
     return () => {
       cancelled = true
     }
-  }, [today, sport, gameKey, tables.chirpGuessDaily, tables.players, fields])
+  }, [today, sport, gameKey, tables, fields])
 
   function finish(won, allRows) {
     // Chirp Guess has no built-in point system (it's pure guess-count, like
@@ -90,13 +143,18 @@ export default function ChirpGuess() {
 
   async function handleSelect(selected) {
     setSubmitting(true)
+    setSubmitError(null)
     // The search dropdown only returns id/full_name/position/current_team —
     // every other tile (conference, division, jersey, height, weight, age,
     // draft round, college) needs the full row or it silently compares
     // against undefined and falls back to grey.
-    const { data: full } = await supabase.from(tables.players).select(fields).eq('id', selected.id).single()
-    const player = full || selected
+    const player = await fetchFullPlayer(tables, fields, selected.id)
     setSubmitting(false)
+
+    if (!player) {
+      setSubmitError("Couldn't load that player's data — check your connection and try again.")
+      return
+    }
 
     const tiles = compareChirpGuess(sport, player, answer)
     const row = { player, tiles }
@@ -140,6 +198,7 @@ export default function ChirpGuess() {
       </p>
 
       <PlayerSearchInput table={tables.players} onSelect={handleSelect} placeholder="Type a player name…" disabled={submitting} />
+      {submitError && <p className="mt-2 text-xs text-[var(--color-primary)]">{submitError}</p>}
 
       <div className="mt-6 space-y-2">
         {rows.map((row, i) => (
