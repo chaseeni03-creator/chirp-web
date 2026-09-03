@@ -36,7 +36,10 @@ export default function WaitlistFooter() {
     <footer className="border-t border-[var(--color-border)] bg-[var(--color-surface)]">
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
-          <p className="text-lg font-bold">🦜 Chirp Sports Mobile App</p>
+          <p className="flex items-center justify-center gap-1.5 text-lg font-bold">
+            <img src="/bird-logo.png" alt="" className="h-5 w-5" />
+            Chirp Sports Mobile App
+          </p>
           <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
             Coming soon to iOS and Android
           </p>
@@ -80,11 +83,10 @@ export default function WaitlistFooter() {
           <Link to="/privacy" className="hover:text-[var(--color-text)]">Privacy Policy</Link>
           <Link to="/terms" className="hover:text-[var(--color-text)]">Terms of Service</Link>
         </div>
-        <div className="mt-4 flex items-center justify-center gap-1.5">
-          <span className="text-xl">🦜</span>
-          <span className="text-sm font-extrabold">
-            <span className="text-[var(--color-primary)]">Chirp</span> Sports
-          </span>
+        <div className="mt-4 flex items-center justify-center gap-1.5 text-sm font-extrabold">
+          <span className="text-[var(--color-primary)]">Chirp</span>
+          <img src="/bird-logo.png" alt="" className="h-4 w-4" />
+          <span className="text-[var(--color-text)]">Sports</span>
         </div>
         <p className="mt-3 text-center text-xs text-[var(--color-text-tertiary)]">
           © {new Date().getFullYear()} Chirp Sports. Not affiliated with the NFL, MLB, or NBA.

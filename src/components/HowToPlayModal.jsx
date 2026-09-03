@@ -53,11 +53,10 @@ export default function HowToPlayModal({ gameKey, onClose }) {
 
         <p className="mt-4 text-center text-sm font-semibold text-[var(--color-text)]">Good luck! 🦜</p>
 
-        <div className="mt-5 flex items-center justify-center gap-2 border-t border-[var(--color-border)] pt-4">
-          <span className="text-3xl">🦜</span>
-          <span className="text-sm font-extrabold">
-            <span className="text-[var(--color-primary)]">Chirp</span> Sports
-          </span>
+        <div className="mt-5 flex items-center justify-center gap-1.5 border-t border-[var(--color-border)] pt-4 text-sm font-extrabold">
+          <span className="text-[var(--color-primary)]">Chirp</span>
+          <img src="/bird-logo.png" alt="" className="h-4 w-4" />
+          <span className="text-[var(--color-text)]">Sports</span>
         </div>
       </div>
     </div>
