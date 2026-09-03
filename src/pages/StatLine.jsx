@@ -22,13 +22,30 @@ const PLAYER_FIELDS = {
   nba: 'id, full_name, position',
 }
 
+const MLB_LEAGUE_NAMES = { AL: 'American League', NL: 'National League' }
+
+// One text banner per contextual clue, sport-aware since each sport spells
+// these out differently (NFL: "AFC Conference", MLB: "American League"
+// spelled out, NBA: "Eastern Conference") — matches the exact display
+// format specified. '@teammate' is deliberately not here: it needs an async
+// fetch rather than a value already sitting on `mystery`, so it's rendered
+// by its own block below instead of this generic one.
 const META_LABELS = {
-  '@conference': (m) => ({ label: 'Conference', value: m.seasonConference ?? 'Unknown' }),
-  '@league': (m) => ({ label: 'League', value: m.seasonConference ?? 'Unknown' }), // MLB's clue order uses '@league'; buildMlbMystery stores it under seasonConference
-  '@division': (m) => ({ label: 'Division', value: m.seasonDivision ?? 'Unknown' }),
-  '@season': (m) => ({ label: 'Season', value: String(m.season) }),
-  '@team': (m) => ({ label: 'Team', value: m.team ?? 'Unknown' }),
+  '@conference': (m, sport) => {
+    const v = m.seasonConference ?? 'Unknown'
+    if (sport === 'nba') return { emoji: '🏀', text: `${v} Conference` }
+    return { emoji: '🏈', text: `${v} Conference` }
+  },
+  '@league': (m) => ({ emoji: '⚾', text: MLB_LEAGUE_NAMES[m.seasonConference] ?? m.seasonConference ?? 'Unknown' }),
+  '@division': (m, sport) => {
+    const v = m.seasonDivision ?? 'Unknown'
+    return { emoji: '📍', text: sport === 'nba' ? `${v} Division` : v }
+  },
+  '@season': (m) => ({ emoji: '📅', text: `${m.season} Season` }),
+  '@team': (m) => ({ emoji: null, text: m.teamFullName ?? m.team ?? 'Unknown' }),
 }
+
+const MAX_SKIPS = 3
 
 async function fetchTeammates(sport, tables, team, season, excludeId) {
   if (!team) return []
@@ -64,6 +81,7 @@ export default function StatLine() {
   const [wrongGuesses, setWrongGuesses] = useState([])
   const [hints, setHints] = useState(new Set())
   const [teammates, setTeammates] = useState([])
+  const [skipsUsed, setSkipsUsed] = useState(0)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
   const gameKey = `${sport}-stat-line-${era}-${difficulty}`
@@ -82,6 +100,7 @@ export default function StatLine() {
     setWrongGuesses([])
     setHints(new Set())
     setTeammates([])
+    setSkipsUsed(0)
 
     async function load() {
       const already = getTodayResult(gameKey, today)
@@ -123,6 +142,7 @@ export default function StatLine() {
           setRevealed(saved.revealed)
           setWrongGuesses(saved.wrongGuesses || [])
           setTeammates(saved.teammates || [])
+          setSkipsUsed(saved.skipsUsed || 0)
         }
         setLoading(false)
       }
@@ -133,11 +153,15 @@ export default function StatLine() {
     }
   }, [today, sport, era, difficulty, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
 
-  function persist(nextRevealed, nextWrong, nextTeammates) {
-    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammates: nextTeammates })
+  function persist(nextRevealed, nextWrong, nextTeammates, nextSkipsUsed = skipsUsed) {
+    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammates: nextTeammates, skipsUsed: nextSkipsUsed })
   }
 
+  // Teammate is a clue only for QB (NFL) and NBA — every other group's
+  // clueSteps never includes '@teammate', so this only ever fetches for
+  // those two, matching the explicit per-sport spec.
   async function maybeLoadTeammates(nextRevealed, nextWrong) {
+    if (!mystery.hasTeammateClue) return teammates
     if (nextRevealed < mystery.clueSteps.length) return teammates
     if (teammates.length > 0) return teammates
     const names = await fetchTeammates(sport, tables, mystery.team, mystery.season, mysteryPlayer.id)
@@ -163,19 +187,22 @@ export default function StatLine() {
   // (the old behavior here) meant team/teammate always appeared one guess
   // too late to ever be used.
   async function handleSkip() {
+    if (skipsUsed >= MAX_SKIPS) return
     const nextWrong = [...wrongGuesses, 'Skipped']
+    const nextSkipsUsed = skipsUsed + 1
     setWrongGuesses(nextWrong)
+    setSkipsUsed(nextSkipsUsed)
     setHints(new Set())
 
     if (revealed >= mystery.clueSteps.length) {
-      persist(revealed, nextWrong, teammates)
+      persist(revealed, nextWrong, teammates, nextSkipsUsed)
       finish(false, revealed, teammates)
       return
     }
     const next = revealed + 1
     setRevealed(next)
     const nextTeammates = await maybeLoadTeammates(next, nextWrong)
-    persist(next, nextWrong, nextTeammates)
+    persist(next, nextWrong, nextTeammates, nextSkipsUsed)
   }
 
   async function handleGuess(guessedPlayer) {
@@ -249,7 +276,7 @@ export default function StatLine() {
   }
 
   const statKeys = gridStatKeys(mystery.clueSteps)
-  const metaSteps = mystery.clueSteps.filter((s) => s.startsWith('@'))
+  const metaSteps = mystery.clueSteps.filter((s) => s.startsWith('@') && s !== '@teammate')
 
   return shell(
     <>
@@ -274,10 +301,10 @@ export default function StatLine() {
       {metaSteps.some((tag) => isRevealed(mystery.clueSteps, tag, revealed)) && (
         <div className="mt-3 flex flex-wrap gap-2">
           {metaSteps.filter((tag) => isRevealed(mystery.clueSteps, tag, revealed)).map((tag) => {
-            const { label, value } = META_LABELS[tag](mystery)
+            const { emoji, text } = META_LABELS[tag](mystery, sport)
             return (
-              <span key={tag} className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
-                {label}: <span className="text-[var(--color-text)]">{value}</span>
+              <span key={tag} className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text)]">
+                {emoji ? `${emoji} ` : ''}{text}
               </span>
             )
           })}
@@ -292,8 +319,8 @@ export default function StatLine() {
           a pure "here's what you missed" consolation. */}
       {teammates.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text-secondary)]">
-            Teammate that season: <span className="text-[var(--color-text)]">{teammates[0]}</span>
+          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text)]">
+            🤝 Played with {teammates[0]}
           </span>
         </div>
       )}
@@ -316,10 +343,12 @@ export default function StatLine() {
         <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
-          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
+          disabled={skipsUsed >= MAX_SKIPS}
+          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)] disabled:opacity-40"
         >
           Skip (reveal next clue)
         </button>
+        <p className="mt-1.5 text-center text-xs text-[var(--color-text-tertiary)]">Skips remaining: {MAX_SKIPS - skipsUsed}</p>
       </div>
     </>
   )
