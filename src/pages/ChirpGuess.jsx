@@ -206,7 +206,13 @@ export default function ChirpGuess() {
         Guess {"today's"} mystery {SPORT_META[sport].label} player. {MAX_GUESSES - rows.length} guesses left.
       </p>
 
-      <PlayerSearchInput table={tables.players} onSelect={handleSelect} placeholder="Type a player name…" disabled={submitting} />
+      <PlayerSearchInput
+        table={tables.players}
+        onSelect={handleSelect}
+        placeholder="Type a player name…"
+        disabled={submitting}
+        activeOnly={sport === 'nfl'}
+      />
       {submitError && <p className="mt-2 text-xs text-[var(--color-primary)]">{submitError}</p>}
 
       <div className="mt-6 space-y-2">

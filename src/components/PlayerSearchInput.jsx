@@ -37,8 +37,14 @@ function buildSearchPattern(cleaned) {
     .join(' ')
 }
 
-/** Autocomplete text input searching the given players table by name. Calls onSelect(player) on pick. */
-export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled }) {
+/**
+ * Autocomplete text input searching the given players table by name. Calls
+ * onSelect(player) on pick. Pass activeOnly for a game whose mystery player
+ * is always a current player (NFL Chirp Guess) so the guess box can't
+ * suggest a retired one — every other game/sport leaves this off since they
+ * intentionally draw from a player's whole career.
+ */
+export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled, activeOnly = false }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -53,19 +59,19 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
     let cancelled = false
     const t = setTimeout(async () => {
       const pattern = buildSearchPattern(cleaned)
-      const { data } = await supabase
+      let q = supabase
         .from(table)
         .select('id, full_name, position, current_team')
         .ilike('full_name', `%${pattern}%`)
-        .order('full_name')
-        .limit(8)
+      if (activeOnly) q = q.eq('is_active', true)
+      const { data } = await q.order('full_name').limit(8)
       if (!cancelled) setResults(data || [])
     }, 200)
     return () => {
       cancelled = true
       clearTimeout(t)
     }
-  }, [query, table])
+  }, [query, table, activeOnly])
 
   useEffect(() => {
     function onClickOutside(e) {
