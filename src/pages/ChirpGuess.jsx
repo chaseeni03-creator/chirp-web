@@ -28,6 +28,16 @@ function withTimeout(promise, ms) {
   return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))])
 }
 
+// Every team a player has ever recorded a stat line for — the real,
+// complete career history, unlike the players table's own previous_teams
+// column. Used only for the mystery player, to power the team/conference/
+// division/league tiles' "played there before, not now" tier.
+async function fetchCareerTeams(seasonStatsTable, playerId) {
+  const { data } = await supabase.from(seasonStatsTable).select('team').eq('player_id', playerId)
+  if (!data) return []
+  return [...new Set(data.map((r) => r.team).filter(Boolean))]
+}
+
 async function fetchFullPlayer(tables, fields, id) {
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 400))
@@ -114,7 +124,16 @@ export default function ChirpGuess() {
 
       const { data: player } = await supabase.from(tables.players).select(fields).eq('id', daily.player_id).single()
       if (cancelled) return
-      setAnswer(player)
+      // The team/conference/division tiles need the mystery player's real,
+      // complete career team history to tell "playing there now" from
+      // "played there before" — tables.players.previous_teams is a
+      // separately-maintained column that isn't guaranteed exhaustive, so
+      // it's overridden here with every team the mystery player actually
+      // has a row for in season stats (never fetched for the guessed
+      // player — the tiles only ever check the guess's CURRENT team).
+      const careerTeams = await fetchCareerTeams(tables.seasonStats, daily.player_id)
+      if (cancelled) return
+      setAnswer({ ...player, previous_teams: careerTeams })
       const saved = getInProgress(gameKey, today)
       if (saved?.rows?.length) {
         const { healed, changed } = await healCorruptedRows(sport, tables, fields, saved.rows, player)

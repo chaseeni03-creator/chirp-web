@@ -8,7 +8,7 @@
 // shared a conference/division (using current_team + previous_teams), grey
 // otherwise, no orange — per explicit user request.
 
-import { nflResolveTeam, nflCanonicalCode } from './statLine'
+import { nflResolveTeam } from './statLine'
 
 export const CHIRP_GUESS_FIELDS = {
   nfl: 'id, full_name, position, current_team, previous_teams, conference, division, jersey_number, height, weight, birth_date, draft_round, college',
@@ -192,7 +192,7 @@ function ageFromBirthDate(birthDate) {
 function heightTile(label, guessRaw, mysteryRaw) {
   const gh = parseHeightInches(guessRaw)
   const mh = parseHeightInches(mysteryRaw)
-  return { label, value: formatHeightInches(gh), color: rangeColor(gh, mh, 1, 3), arrow: arrowFor(gh, mh) }
+  return { label, value: formatHeightInches(gh), color: rangeColor(gh, mh, 0, 3), arrow: arrowFor(gh, mh) }
 }
 
 function weightTile(label, guessVal, mysteryVal, greenMax, orangeMax) {
@@ -251,32 +251,27 @@ function nflGroupsFor(position) {
   return Object.entries(NFL_POSITION_GROUPS).filter(([, list]) => list.includes(p)).map(([name]) => name)
 }
 
-/** Every team code (current + previous, canonicalized) a player's ever been on. */
-function nflTeamsEverPlayedFor(player) {
-  return new Set([
-    ...(player.current_team ? [nflCanonicalCode(player.current_team)] : []),
-    ...(player.previous_teams || []).map(nflCanonicalCode),
-  ])
+/** Every conference the mystery player has ever played in, derived from
+ * m.previous_teams — the caller populates that field with the real
+ * season-by-season team history from nfl_season_stats for the mystery
+ * player specifically (see fetchNflCareerTeams in ChirpGuess.jsx), not the
+ * nfl_players.previous_teams column, which isn't guaranteed exhaustive. */
+function nflCareerConferences(m) {
+  return new Set((m.previous_teams || []).map((t) => nflResolveTeam(t)?.conference).filter(Boolean))
 }
 
-function nflConferencesEverPlayedIn(player) {
-  const set = new Set([...nflTeamsEverPlayedFor(player)].map((t) => nflResolveTeam(t)?.conference).filter(Boolean))
-  if (player.conference) set.add(player.conference)
-  return set
+function nflCareerDivisions(m) {
+  return new Set((m.previous_teams || []).map((t) => nflResolveTeam(t)?.division).filter(Boolean))
 }
 
-function nflDivisionsEverPlayedIn(player) {
-  const set = new Set([...nflTeamsEverPlayedFor(player)].map((t) => nflResolveTeam(t)?.division).filter(Boolean))
-  if (player.division) set.add(player.division)
-  return set
-}
-
+/** Only the GUESSED player's current team is checked against the mystery
+ * player's team history — the guessed player's own past teams are never
+ * part of this comparison, since the tile is a hint about the mystery
+ * player, not the guess. */
 function nflTeamTile(g, m) {
-  const gPrev = g.previous_teams || []
   const mPrev = m.previous_teams || []
   let color
   if (g.current_team != null && g.current_team === m.current_team) color = 'green'
-  else if (m.current_team != null && gPrev.includes(m.current_team)) color = 'orange'
   else if (g.current_team != null && mPrev.includes(g.current_team)) color = 'orange'
   else color = 'grey'
   return { label: 'TEAM', value: g.current_team ?? '?', color, arrow: null }
@@ -294,27 +289,27 @@ export function compareNfl(g, m) {
   return [
     nflTeamTile(g, m),
     (() => {
-      const gConfs = nflConferencesEverPlayedIn(g)
-      const mConfs = nflConferencesEverPlayedIn(m)
-      const color = [...gConfs].some((c) => mConfs.has(c)) ? 'green' : 'grey'
-      const value = g.conference ?? nflResolveTeam(g.current_team)?.conference ?? [...gConfs][0] ?? '?'
-      return { label: 'CONF', value, color, arrow: null }
+      let color
+      if (g.conference != null && g.conference === m.conference) color = 'green'
+      else if (g.conference != null && nflCareerConferences(m).has(g.conference)) color = 'orange'
+      else color = 'grey'
+      return { label: 'CONF', value: g.conference ?? '?', color, arrow: null }
     })(),
     (() => {
-      const gDivs = nflDivisionsEverPlayedIn(g)
-      const mDivs = nflDivisionsEverPlayedIn(m)
-      const color = [...gDivs].some((d) => mDivs.has(d)) ? 'green' : 'grey'
-      const value = g.division ?? nflResolveTeam(g.current_team)?.division ?? [...gDivs][0] ?? '?'
-      return { label: 'DIV', value, color, arrow: null }
+      let color
+      if (g.division != null && g.division === m.division) color = 'green'
+      else if (g.division != null && nflCareerDivisions(m).has(g.division)) color = 'orange'
+      else color = 'grey'
+      return { label: 'DIV', value: g.division ?? '?', color, arrow: null }
     })(),
     { label: '#', value: g.jersey_number ?? '?', color: numericColor(g.jersey_number, m.jersey_number, 5), arrow: arrowFor(g.jersey_number, m.jersey_number) },
     nflPositionTile(g, m),
     heightTile('HT', g.height, m.height),
-    weightTile('WT', g.weight, m.weight, 10, 25),
+    weightTile('WT', g.weight, m.weight, 0, 15),
     (() => {
       const ga = ageFromBirthDate(g.birth_date)
       const ma = ageFromBirthDate(m.birth_date)
-      return { label: 'AGE', value: ga ?? '?', color: numericColor(ga, ma, 2), arrow: arrowFor(ga, ma) }
+      return { label: 'AGE', value: ga ?? '?', color: numericColor(ga, ma, 3), arrow: arrowFor(ga, ma) }
     })(),
     draftRoundTile(g.draft_round, m.draft_round),
     exactTile('SCH', g.college, m.college),
@@ -331,23 +326,41 @@ function mlbPositionTile(g, m) {
   return { label: 'POS', value: g.position ?? '?', color, arrow: null }
 }
 
+/** m.previous_teams is populated by the caller with the real season-by-
+ * season team history from mlb_season_stats for the mystery player — see
+ * fetchMlbCareerTeams in ChirpGuess.jsx. League is MLB's conference-
+ * equivalent (AL/NL). */
+function mlbCareerLeagues(m) {
+  return new Set((m.previous_teams || []).map((t) => mlbResolveTeam(t)?.league).filter(Boolean))
+}
+
+function mlbCareerDivisions(m) {
+  return new Set((m.previous_teams || []).map((t) => mlbResolveTeam(t)?.division).filter(Boolean))
+}
+
 export function compareMlb(g, m) {
   const gTeam = mlbResolveTeam(g.current_team)
   const mTeam = mlbResolveTeam(m.current_team)
   return [
     mlbPositionTile(g, m),
-    { label: 'LG', value: gTeam?.league ?? '?', color: gTeam?.league != null && gTeam.league === mTeam?.league ? 'green' : 'grey', arrow: null },
+    (() => {
+      let color
+      if (gTeam?.league != null && gTeam.league === mTeam?.league) color = 'green'
+      else if (gTeam?.league != null && mlbCareerLeagues(m).has(gTeam.league)) color = 'orange'
+      else color = 'grey'
+      return { label: 'LG', value: gTeam?.league ?? '?', color, arrow: null }
+    })(),
     (() => {
       let color
       if (gTeam?.division != null && gTeam.division === mTeam?.division) color = 'green'
-      else if (gTeam?.league != null && gTeam.league === mTeam?.league) color = 'orange'
+      else if (gTeam?.division != null && mlbCareerDivisions(m).has(gTeam.division)) color = 'orange'
       else color = 'grey'
       return { label: 'DIV', value: gTeam?.division ?? '?', color, arrow: null }
     })(),
     careerSpanTile(g.season_first, g.season_last, m.season_first, m.season_last),
     exactTile('BATS', g.bats, m.bats),
     heightTile('HT', g.height, m.height),
-    weightTile('WT', g.weight, m.weight, 10, 25),
+    weightTile('WT', g.weight, m.weight, 0, 15),
     exactTile('CTY', g.birth_country, m.birth_country),
     hofTile(g.is_hall_of_fame, m.is_hall_of_fame),
     { label: 'AS', value: g.all_star_selections ?? '0', color: rangeColor(g.all_star_selections, m.all_star_selections, 2, 5), arrow: arrowFor(g.all_star_selections, m.all_star_selections) },
@@ -367,23 +380,40 @@ function nbaPositionTile(g, m) {
   return { label: 'POS', value: g.position ?? '?', color, arrow: null }
 }
 
+/** m.previous_teams is populated by the caller with the real season-by-
+ * season team history from nba_season_stats for the mystery player — see
+ * fetchNbaCareerTeams in ChirpGuess.jsx. */
+function nbaCareerConferences(m) {
+  return new Set((m.previous_teams || []).map((t) => nbaResolveTeam(t)?.conference).filter(Boolean))
+}
+
+function nbaCareerDivisions(m) {
+  return new Set((m.previous_teams || []).map((t) => nbaResolveTeam(t)?.division).filter(Boolean))
+}
+
 export function compareNba(g, m) {
   const gTeam = nbaResolveTeam(g.current_team)
   const mTeam = nbaResolveTeam(m.current_team)
   return [
     nbaPositionTile(g, m),
-    { label: 'CONF', value: gTeam?.conference ?? '?', color: gTeam?.conference != null && gTeam.conference === mTeam?.conference ? 'green' : 'grey', arrow: null },
+    (() => {
+      let color
+      if (gTeam?.conference != null && gTeam.conference === mTeam?.conference) color = 'green'
+      else if (gTeam?.conference != null && nbaCareerConferences(m).has(gTeam.conference)) color = 'orange'
+      else color = 'grey'
+      return { label: 'CONF', value: gTeam?.conference ?? '?', color, arrow: null }
+    })(),
     (() => {
       let color
       if (gTeam?.division != null && gTeam.division === mTeam?.division) color = 'green'
-      else if (gTeam?.conference != null && gTeam.conference === mTeam?.conference) color = 'orange'
+      else if (gTeam?.division != null && nbaCareerDivisions(m).has(gTeam.division)) color = 'orange'
       else color = 'grey'
       return { label: 'DIV', value: gTeam?.division ?? '?', color, arrow: null }
     })(),
     careerSpanTile(g.season_first, g.season_last, m.season_first, m.season_last),
     draftRoundTile(g.draft_round, m.draft_round),
     heightTile('HT', g.height, m.height),
-    weightTile('WT', g.weight, m.weight, 15, 30),
+    weightTile('WT', g.weight, m.weight, 0, 15),
     exactTile('CTY', g.birth_country, m.birth_country),
   ]
 }

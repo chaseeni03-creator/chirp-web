@@ -2,15 +2,16 @@
 export const HOW_TO_PLAY = {
   'chirp-guess': {
     title: 'How to Play Chirp Guess 🎯',
-    intro: 'Guess the mystery player!',
+    intro: 'Guess the mystery player in 8 guesses or fewer!',
     bullets: [
-      'Type a player name in the search box and submit your guess',
-      'Each guess reveals color coded clues about the mystery player:\n🟩 Green = exact match\n🟨 Orange = close match\n⬜ Grey = no match',
-      "Arrows ↑↓ show if the mystery player's value is higher or lower",
-      'You have 8 guesses to find the player',
+      'TEAM · CONFERENCE · DIVISION (or LEAGUE for MLB):\n🟩 Green = playing there RIGHT NOW\n🟨 Orange = played there previously in their career\n⬜ Grey = never played there',
+      "HEIGHT · WEIGHT · JERSEY:\n🟩 Green = exact match\n🟨 Orange = very close\n⬜ Grey = not close\n↑ = mystery player is higher/taller\n↓ = mystery player is lower/shorter",
+      'DRAFT ROUND:\n🟩 Green = same round\n🟨 Orange = one round off\n⬜ Grey = far apart\n↑ = drafted later\n↓ = drafted earlier',
+      'POSITION:\n🟩 Green = same position\n🟨 Orange = same position group\n⬜ Grey = different position',
+      'COLLEGE:\n🟩 Green = same college\n⬜ Grey = different college',
       'Fewer guesses = higher score!',
     ],
-    scoring: null,
+    scoring: 'Maximum score: 1000 pts',
   },
   'stat-line': {
     title: 'How to Play Stat Line 📊',

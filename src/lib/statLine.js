@@ -34,7 +34,10 @@ export const NFL_TEAMS = {
   ARI: { conference: 'NFC', division: 'NFC West', fullName: 'Arizona Cardinals' }, LA: { conference: 'NFC', division: 'NFC West', fullName: 'Los Angeles Rams' },
   SF: { conference: 'NFC', division: 'NFC West', fullName: 'San Francisco 49ers' }, SEA: { conference: 'NFC', division: 'NFC West', fullName: 'Seattle Seahawks' },
 }
-const NFL_TEAM_ALIASES = { AZ: 'ARI', GNB: 'GB', KAN: 'KC', LVR: 'LV', LAR: 'LA', NOR: 'NO', NWE: 'NE', SFO: 'SF', TAM: 'TB', JAC: 'JAX', HTX: 'HOU', CLT: 'IND' }
+const NFL_TEAM_ALIASES = {
+  AZ: 'ARI', GNB: 'GB', KAN: 'KC', LVR: 'LV', LAR: 'LA', NOR: 'NO', NWE: 'NE', SFO: 'SF', TAM: 'TB', JAC: 'JAX', HTX: 'HOU', CLT: 'IND',
+  OTI: 'TEN', OAK: 'LV', SD: 'LAC', SDG: 'LAC', WSH: 'WAS', RAM: 'LA',
+}
 function nflCanonicalCode(code) {
   if (!code) return null
   return NFL_TEAM_ALIASES[code.toUpperCase()] || code.toUpperCase()
