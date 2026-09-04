@@ -45,8 +45,6 @@ const META_LABELS = {
   '@team': (m) => ({ emoji: null, text: m.teamFullName ?? m.team ?? 'Unknown' }),
 }
 
-const MAX_SKIPS = 3
-
 async function fetchTeammates(sport, tables, team, season, excludeId) {
   if (!team) return []
   const configs = {
@@ -81,7 +79,6 @@ export default function StatLine() {
   const [wrongGuesses, setWrongGuesses] = useState([])
   const [hints, setHints] = useState(new Set())
   const [teammates, setTeammates] = useState([])
-  const [skipsUsed, setSkipsUsed] = useState(0)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
   const gameKey = `${sport}-stat-line-${era}-${difficulty}`
@@ -100,7 +97,6 @@ export default function StatLine() {
     setWrongGuesses([])
     setHints(new Set())
     setTeammates([])
-    setSkipsUsed(0)
 
     async function load() {
       const already = getTodayResult(gameKey, today)
@@ -142,7 +138,6 @@ export default function StatLine() {
           setRevealed(saved.revealed)
           setWrongGuesses(saved.wrongGuesses || [])
           setTeammates(saved.teammates || [])
-          setSkipsUsed(saved.skipsUsed || 0)
         }
         setLoading(false)
       }
@@ -153,8 +148,8 @@ export default function StatLine() {
     }
   }, [today, sport, era, difficulty, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
 
-  function persist(nextRevealed, nextWrong, nextTeammates, nextSkipsUsed = skipsUsed) {
-    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammates: nextTeammates, skipsUsed: nextSkipsUsed })
+  function persist(nextRevealed, nextWrong, nextTeammates) {
+    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammates: nextTeammates })
   }
 
   // Teammate is a clue only for QB (NFL) and NBA — every other group's
@@ -187,22 +182,19 @@ export default function StatLine() {
   // (the old behavior here) meant team/teammate always appeared one guess
   // too late to ever be used.
   async function handleSkip() {
-    if (skipsUsed >= MAX_SKIPS) return
     const nextWrong = [...wrongGuesses, 'Skipped']
-    const nextSkipsUsed = skipsUsed + 1
     setWrongGuesses(nextWrong)
-    setSkipsUsed(nextSkipsUsed)
     setHints(new Set())
 
     if (revealed >= mystery.clueSteps.length) {
-      persist(revealed, nextWrong, teammates, nextSkipsUsed)
+      persist(revealed, nextWrong, teammates)
       finish(false, revealed, teammates)
       return
     }
     const next = revealed + 1
     setRevealed(next)
     const nextTeammates = await maybeLoadTeammates(next, nextWrong)
-    persist(next, nextWrong, nextTeammates, nextSkipsUsed)
+    persist(next, nextWrong, nextTeammates)
   }
 
   async function handleGuess(guessedPlayer) {
@@ -343,12 +335,10 @@ export default function StatLine() {
         <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
-          disabled={skipsUsed >= MAX_SKIPS}
-          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)] disabled:opacity-40"
+          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
         >
           Skip (reveal next clue)
         </button>
-        <p className="mt-1.5 text-center text-xs text-[var(--color-text-tertiary)]">Skips remaining: {MAX_SKIPS - skipsUsed}</p>
       </div>
     </>
   )

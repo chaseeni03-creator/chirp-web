@@ -19,7 +19,7 @@ export const HOW_TO_PLAY = {
       "A mystery player's stats are revealed one at a time",
       'After each wrong guess a new stat clue is revealed',
       'Stats are shown in a grid. Position is shown at the top',
-      'Use up to 3 skips to reveal the next clue without penalty',
+      'Skip to reveal the next clue — counts the same as a wrong guess',
       'Earlier correct guess = more points!',
     ],
     scoring: 'Clue 1 = 1000 pts\nClue 2 = 900 pts\n...and so on',
