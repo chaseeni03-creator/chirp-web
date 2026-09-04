@@ -135,7 +135,14 @@ export default function ChirpGuess() {
     // Wordle) — this score exists only so the game has something to compare
     // on a group leaderboard: fewer guesses scores higher, a loss scores 0.
     const groupScore = won ? Math.max(100, 1000 - (allRows.length - 1) * 100) : 0
-    const result = { rows: allRows.map((r) => r.tiles), won, guessCount: allRows.length, maxGuesses: MAX_GUESSES, groupScore }
+    const result = {
+      rows: allRows.map((r) => r.tiles),
+      won,
+      guessCount: allRows.length,
+      maxGuesses: MAX_GUESSES,
+      groupScore,
+      answerName: answer.full_name,
+    }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, won)
     setFinished(result)
@@ -177,7 +184,9 @@ export default function ChirpGuess() {
     return (
       <GameShell emoji="🎯" title={title} howToPlay="chirp-guess">
         <p className="mb-4 text-center font-semibold">
-          {finished.won ? `Solved in ${finished.guessCount}/${MAX_GUESSES}! 🎉` : "Didn't get it today."}
+          {finished.won
+            ? `Solved in ${finished.guessCount}/${MAX_GUESSES}! 🎉`
+            : `Didn't get it today — the answer was ${finished.answerName ?? 'unknown'}.`}
         </p>
         <ShareResult text={buildShareText('chirp-guess', today, finished)} />
         <GroupScoreBanner
