@@ -132,62 +132,48 @@ export function statColumn(sport, stat) {
 
 export function questionText(stat) {
   const label = (stat.category.label || '').toUpperCase()
-  return stat.scope === 'career' ? `Who had more CAREER ${label}?` : `Who had more ${label} in ${stat.season}?`
+  return stat.scope === 'career' ? `Who had more CAREER ${label}?` : `Who had more ${label} in ${stat.eraLabel}?`
 }
 
 export function shortLabel(stat) {
-  return stat.scope === 'career' ? `Career ${stat.category.label}` : `${stat.category.label} (${stat.season})`
+  return stat.scope === 'career' ? `Career ${stat.category.label}` : `${stat.category.label} (${stat.eraLabel})`
 }
 
 // ── Random stat picker (mirrors _randomStat) ───────────────────────────────
+//
+// THE BUG THIS REPLACES: selecting an era (e.g. 2000s) only ever restricted
+// WHICH PLAYERS are eligible — the "Career" comparison still summed a
+// player's ENTIRE career, including years outside the selected era (Tom
+// Brady's career spans 2000-2022, not just the 2000s). The "season"
+// alternative wasn't scoped to the era either — it picked one arbitrary
+// season from anywhere in the player's career. See
+// supabase/who_had_more_era_totals.sql (and the mlb_/nba_ companions) for
+// the server-side fix this mirrors: the non-career scope is now an
+// ERA-AGGREGATE total (SUM of every season within the era's year range),
+// and is only ever offered when the selected era/mode actually has a year
+// window — All Time/Impossible/All-Stars have none, so an "era total" there
+// would just be the career total again.
 
-/**
- * PostgREST caps a `.select()` at 1,000 rows by default with no guaranteed
- * order — nfl_/mlb_/nba_season_stats all have far more rows than that
- * (nfl_season_stats alone is ~90,000), so an unpaginated fetch here would
- * silently sample only an arbitrary ~1,000-row slice of season history
- * instead of the real range, biasing which years ever get picked for a
- * season-scope matchup (the same failure mode found and fixed in The
- * Lineup's leaderboards — mobile's who_had_more_service.dart /
- * mlb_who_had_more_service.dart / nba_who_had_more_service.dart have this
- * identical unpaginated query, so it's a real bug there too). Paginated in
- * 1,000-row pages via .range() until a short page ends it.
- */
-const availableSeasonsCache = {}
-
-async function fetchAllSeasonValues(table) {
-  const years = new Set()
-  const pageSize = 1000
-  let from = 0
-  while (true) {
-    const { data, error } = await supabase.from(table).select('season').range(from, from + pageSize - 1)
-    if (error || !data) break
-    for (const r of data) years.add(r.season)
-    if (data.length < pageSize) break
-    from += pageSize
-  }
-  return years
+function hasEraWindow(sport, modeKey, era) {
+  if (sport === 'nfl') return !!era?.range
+  if (sport === 'mlb') return modeKey !== 'all_stars' && modeKey !== 'impossible'
+  return modeKey !== 'all_stars' && modeKey !== 'all' && modeKey !== 'impossible'
 }
 
-async function availableSeasons(sport, tables) {
-  if (availableSeasonsCache[sport]) return availableSeasonsCache[sport]
-  const years = [...(await fetchAllSeasonValues(tables.seasonStats))].sort((a, b) => a - b)
-  availableSeasonsCache[sport] = years
-  return years
+function eraLabelFor(sport, modeKey, era) {
+  if (sport === 'nfl') return era?.label ?? null
+  const mode = modesFor(sport).find((m) => m.key === modeKey)
+  return mode?.label ?? null
 }
 
-async function randomStat(sport, tables) {
+function randomStat(sport, tables, { modeKey, era } = {}) {
   const categories = categoriesFor(sport)
   const category = categories[Math.floor(Math.random() * categories.length)]
-  const canSeason = sport !== 'nba' || category.seasonKey != null
-  if (canSeason && Math.random() < 0.5) {
-    const seasons = await availableSeasons(sport, tables)
-    if (seasons.length > 0) {
-      const season = seasons[Math.floor(Math.random() * seasons.length)]
-      return { category, scope: 'season', season }
-    }
+  const canEra = (sport !== 'nba' || category.seasonKey != null) && hasEraWindow(sport, modeKey, era)
+  if (canEra && Math.random() < 0.5) {
+    return { category, scope: 'era', eraLabel: eraLabelFor(sport, modeKey, era) }
   }
-  return { category, scope: 'career', season: null }
+  return { category, scope: 'career', eraLabel: null }
 }
 
 // ── Fairness bands ───────────────────────────────────────────────────────
@@ -256,9 +242,9 @@ export async function generateInitialMatchup(sport, tables, { modeKey, era, roun
   const rpc = rpcNames(sport)
   const [minPct, maxPct] = fairnessRange(sport, modeKey, round)
   for (let attempt = 0; attempt < 20; attempt++) {
-    const stat = await randomStat(sport, tables)
+    const stat = randomStat(sport, tables, { modeKey, era })
     const relax = attempt >= 14
-    const params = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_season: stat.season, p_mode: modeKey }
+    const params = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_mode: modeKey }
     if (sport === 'nfl') {
       params.p_era_start = era?.range?.[0] ?? null
       params.p_era_end = era?.range?.[1] ?? null
@@ -281,14 +267,20 @@ export async function generateNextMatchup(sport, tables, { champion, modeKey, er
   const rpc = rpcNames(sport)
   const [minPct, maxPct] = fairnessRange(sport, modeKey, round)
   for (let attempt = 0; attempt < 20; attempt++) {
-    const stat = await randomStat(sport, tables)
+    const stat = randomStat(sport, tables, { modeKey, era })
     const relax = attempt >= 14
-    const valueParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_player_id: champion.id, p_season: stat.season }
+    const valueParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_player_id: champion.id }
+    if (sport === 'nfl') {
+      valueParams.p_era_start = era?.range?.[0] ?? null
+      valueParams.p_era_end = era?.range?.[1] ?? null
+    } else {
+      valueParams.p_mode = modeKey
+    }
     const { data: valueRows, error: valueErr } = await supabase.rpc(rpc.value, valueParams)
     if (valueErr || !valueRows || valueRows.length === 0) continue
     const championValue = valueRows[0].value
 
-    const oppParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_exclude_player_id: champion.id, p_season: stat.season, p_limit: 8, p_mode: modeKey }
+    const oppParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_exclude_player_id: champion.id, p_limit: 8, p_mode: modeKey }
     if (sport === 'nfl') {
       oppParams.p_era_start = era?.range?.[0] ?? null
       oppParams.p_era_end = era?.range?.[1] ?? null
