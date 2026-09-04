@@ -37,6 +37,51 @@ function buildSearchPattern(cleaned) {
     .join(' ')
 }
 
+// Sport-specific ranking-signal columns — NFL tracks Pro Bowl selections,
+// MLB/NBA track All-Star selections instead, and only NFL/NBA have a
+// normal_mode_eligible flag (MLB's closest equivalent is who_had_more_normal,
+// computed for a different game but the same "recognizable player" idea).
+const RANK_COLUMNS = {
+  nfl_players: { fame: 'pro_bowl_selections', eligible: 'normal_mode_eligible' },
+  mlb_players: { fame: 'all_star_selections', eligible: 'who_had_more_normal' },
+  nba_players: { fame: 'all_star_selections', eligible: 'normal_mode_eligible' },
+}
+
+function rankColumnsFor(table) {
+  return RANK_COLUMNS[table] ?? { fame: null, eligible: null }
+}
+
+/**
+ * Ordered exactly per spec: name-starts-with first, then active players,
+ * then normal-mode-eligible/recognizable players, then a combined fame
+ * score (Hall of Fame + Pro Bowl/All-Star selections), then most recently
+ * active. Only the ordering changes here — the underlying ilike filter
+ * (buildSearchPattern) still decides which players match at all.
+ */
+function rankPlayers(players, cleanedQuery, rankCols) {
+  const q = cleanedQuery.toLowerCase()
+  const nameMatchRank = (p) => (p.full_name?.toLowerCase().startsWith(q) ? 0 : 1)
+  const fameScore = (p) => (p.is_hall_of_fame ? 1000 : 0) + (rankCols.fame ? (p[rankCols.fame] ?? 0) : 0) * 10
+  return [...players].sort((a, b) => {
+    const nameDiff = nameMatchRank(a) - nameMatchRank(b)
+    if (nameDiff !== 0) return nameDiff
+    const activeDiff = (b.is_active ? 1 : 0) - (a.is_active ? 1 : 0)
+    if (activeDiff !== 0) return activeDiff
+    if (rankCols.eligible) {
+      const eligibleDiff = (b[rankCols.eligible] ? 1 : 0) - (a[rankCols.eligible] ? 1 : 0)
+      if (eligibleDiff !== 0) return eligibleDiff
+    }
+    const fameDiff = fameScore(b) - fameScore(a)
+    if (fameDiff !== 0) return fameDiff
+    return (b.season_last ?? 0) - (a.season_last ?? 0)
+  })
+}
+
+function yearsActiveLabel(p) {
+  if (p.season_first == null) return null
+  return `${p.season_first}-${p.is_active ? 'Present' : p.season_last ?? p.season_first}`
+}
+
 /**
  * Autocomplete text input searching the given players table by name. Calls
  * onSelect(player) on pick. Pass activeOnly for a game whose mystery player
@@ -59,14 +104,29 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
     let cancelled = false
     const t = setTimeout(async () => {
       const pattern = buildSearchPattern(cleaned)
+      const rankCols = rankColumnsFor(table)
+      const rankSelectCols = [rankCols.fame, rankCols.eligible].filter(Boolean)
+      const selectCols = [
+        'id', 'full_name', 'position', 'current_team', 'is_active', 'season_first', 'season_last', 'is_hall_of_fame',
+        ...rankSelectCols,
+      ].join(', ')
       let q = supabase
         .from(table)
-        .select('id, full_name, position, current_team')
+        .select(selectCols)
         .ilike('full_name', `%${pattern}%`)
       if (activeOnly) q = q.eq('is_active', true)
-      const { data } = await q.order('full_name').limit(8)
-      if (!cancelled) setResults(data || [])
-    }, 200)
+      // Order server-side by fame BEFORE truncating — a common first/last
+      // name (e.g. "Brady") can easily have 50+ matches, and without this,
+      // an arbitrary/unordered LIMIT could cut the pool off before a truly
+      // famous player (Tom Brady) is ever fetched at all, leaving the
+      // client-side ranking below nothing to promote. This is a coarse
+      // pre-filter, not the final order — rankPlayers still does the real,
+      // precise sort (name-match-rank first, etc.) on whatever survives.
+      q = q.order('is_hall_of_fame', { ascending: false, nullsFirst: false })
+      if (rankCols.fame) q = q.order(rankCols.fame, { ascending: false, nullsFirst: false })
+      const { data } = await q.limit(50)
+      if (!cancelled) setResults(rankPlayers(data || [], cleaned, rankCols).slice(0, 8))
+    }, 300)
     return () => {
       cancelled = true
       clearTimeout(t)
@@ -109,11 +169,11 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
               key={p.id}
               type="button"
               onClick={() => pick(p)}
-              className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm hover:bg-[var(--color-elevated)]"
+              className="flex w-full flex-col items-start gap-0.5 px-4 py-2.5 text-left text-sm hover:bg-[var(--color-elevated)]"
             >
               <span className="font-medium">{p.full_name}</span>
               <span className="text-xs text-[var(--color-text-secondary)]">
-                {p.position} {p.current_team ? `· ${p.current_team}` : ''}
+                {[p.position, p.current_team, yearsActiveLabel(p)].filter(Boolean).join(' · ')}
               </span>
             </button>
           ))}
