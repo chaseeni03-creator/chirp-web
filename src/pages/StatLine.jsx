@@ -45,24 +45,44 @@ const META_LABELS = {
   '@team': (m) => ({ emoji: null, text: m.teamFullName ?? m.team ?? 'Unknown' }),
 }
 
+/**
+ * Two outcomes only, per spec: either the top candidate actually shared the
+ * mystery's featured season on this team ("played together"), or they only
+ * ever wore the same jersey at a different time. Looks across the team's
+ * WHOLE history (not just the mystery's one featured season) so a real
+ * pick almost always exists — the old exact-season-only query silently
+ * showed nothing at all whenever no other notable player happened to be on
+ * that exact roster that exact year.
+ */
 async function fetchTeammates(sport, tables, team, season, excludeId) {
-  if (!team) return []
+  if (!team) return null
   const configs = {
-    nfl: { table: tables.seasonStats, select: 'player_id, passing_yards, rushing_yards, receiving_yards, tackles, sacks, nfl_players(full_name)', playerKey: 'nfl_players', impact: nflTeammateImpact },
-    mlb: { table: tables.seasonStats, select: 'player_id, hits, home_runs, rbi, wins, strikeouts_pitched, saves, mlb_players(full_name)', playerKey: 'mlb_players', impact: mlbTeammateImpact },
-    nba: { table: tables.seasonStats, select: 'player_id, total_points, total_rebounds, total_assists, nba_players(full_name)', playerKey: 'nba_players', impact: nbaTeammateImpact },
+    nfl: { table: tables.seasonStats, select: 'player_id, season, passing_yards, rushing_yards, receiving_yards, tackles, sacks, nfl_players(full_name)', playerKey: 'nfl_players', impact: nflTeammateImpact },
+    mlb: { table: tables.seasonStats, select: 'player_id, season, hits, home_runs, rbi, wins, strikeouts_pitched, saves, mlb_players(full_name)', playerKey: 'mlb_players', impact: mlbTeammateImpact },
+    nba: { table: tables.seasonStats, select: 'player_id, season, total_points, total_rebounds, total_assists, nba_players(full_name)', playerKey: 'nba_players', impact: nbaTeammateImpact },
   }
   const cfg = configs[sport]
-  const { data } = await supabase.from(cfg.table).select(cfg.select).eq('team', team).eq('season', season).neq('player_id', excludeId)
-  if (!data) return []
-  const sorted = [...data].sort((a, b) => cfg.impact(b) - cfg.impact(a))
-  const names = []
-  for (const r of sorted) {
+  const { data } = await supabase.from(cfg.table).select(cfg.select).eq('team', team).neq('player_id', excludeId)
+  if (!data || data.length === 0) return null
+
+  const byPlayer = new Map()
+  for (const r of data) {
     const name = r[cfg.playerKey]?.full_name
-    if (name && !names.includes(name)) names.push(name)
-    if (names.length >= 2) break
+    if (!name) continue
+    const entry = byPlayer.get(r.player_id) ?? { name, bestImpact: -Infinity, seasons: new Set() }
+    entry.seasons.add(r.season)
+    entry.bestImpact = Math.max(entry.bestImpact, cfg.impact(r))
+    byPlayer.set(r.player_id, entry)
   }
-  return names
+  if (byPlayer.size === 0) return null
+
+  const top = [...byPlayer.values()].sort((a, b) => b.bestImpact - a.bestImpact)[0]
+  return { name: top.name, team, playedTogether: top.seasons.has(season) }
+}
+
+function teammateClueText(teammate) {
+  if (!teammate) return null
+  return teammate.playedTogether ? `🤝 Played with ${teammate.name}` : `🏈 Both played for ${teammate.team}\nbut at different times`
 }
 
 export default function StatLine() {
@@ -78,7 +98,7 @@ export default function StatLine() {
   const [revealed, setRevealed] = useState(1)
   const [wrongGuesses, setWrongGuesses] = useState([])
   const [hints, setHints] = useState(new Set())
-  const [teammates, setTeammates] = useState([])
+  const [teammate, setTeammate] = useState(null)
   const [finished, setFinished] = useState(null)
   const today = todayStr()
   const gameKey = `${sport}-stat-line-${era}-${difficulty}`
@@ -96,7 +116,7 @@ export default function StatLine() {
     setRevealed(1)
     setWrongGuesses([])
     setHints(new Set())
-    setTeammates([])
+    setTeammate(null)
 
     async function load() {
       const already = getTodayResult(gameKey, today)
@@ -137,7 +157,7 @@ export default function StatLine() {
         if (saved) {
           setRevealed(saved.revealed)
           setWrongGuesses(saved.wrongGuesses || [])
-          setTeammates(saved.teammates || [])
+          setTeammate(saved.teammate ?? null)
         }
         setLoading(false)
       }
@@ -148,26 +168,26 @@ export default function StatLine() {
     }
   }, [today, sport, era, difficulty, gameKey, tables.statLineDaily, tables.players, tables.seasonStats])
 
-  function persist(nextRevealed, nextWrong, nextTeammates) {
-    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammates: nextTeammates })
+  function persist(nextRevealed, nextWrong, nextTeammate) {
+    saveInProgress(gameKey, today, { revealed: nextRevealed, wrongGuesses: nextWrong, teammate: nextTeammate })
   }
 
   // Teammate is a clue only for QB (NFL) and NBA — every other group's
   // clueSteps never includes '@teammate', so this only ever fetches for
   // those two, matching the explicit per-sport spec.
   async function maybeLoadTeammates(nextRevealed, nextWrong) {
-    if (!mystery.hasTeammateClue) return teammates
-    if (nextRevealed < mystery.clueSteps.length) return teammates
-    if (teammates.length > 0) return teammates
-    const names = await fetchTeammates(sport, tables, mystery.team, mystery.season, mysteryPlayer.id)
-    setTeammates(names)
-    persist(nextRevealed, nextWrong, names)
-    return names
+    if (!mystery.hasTeammateClue) return teammate
+    if (nextRevealed < mystery.clueSteps.length) return teammate
+    if (teammate != null) return teammate
+    const found = await fetchTeammates(sport, tables, mystery.team, mystery.season, mysteryPlayer.id)
+    setTeammate(found)
+    persist(nextRevealed, nextWrong, found)
+    return found
   }
 
-  function finish(won, finalRevealed, finalTeammates) {
+  function finish(won, finalRevealed, finalTeammate) {
     const score = won ? mystery.scoreTable[finalRevealed] || 0 : 0
-    const result = { won, cluesUsed: finalRevealed, maxClues: mystery.clueSteps.length, score, playerName: mysteryPlayer.full_name, teammate: finalTeammates?.[0] ?? null }
+    const result = { won, cluesUsed: finalRevealed, maxClues: mystery.clueSteps.length, score, playerName: mysteryPlayer.full_name, teammate: finalTeammate ?? null }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, won)
     setFinished(result)
@@ -187,8 +207,8 @@ export default function StatLine() {
     setHints(new Set())
 
     if (revealed >= mystery.clueSteps.length) {
-      persist(revealed, nextWrong, teammates)
-      finish(false, revealed, teammates)
+      persist(revealed, nextWrong, teammate)
+      finish(false, revealed, teammate)
       return
     }
     const next = revealed + 1
@@ -211,8 +231,8 @@ export default function StatLine() {
     setWrongGuesses(nextWrong)
 
     if (revealed >= mystery.clueSteps.length) {
-      persist(revealed, nextWrong, teammates)
-      finish(false, revealed, teammates)
+      persist(revealed, nextWrong, teammate)
+      finish(false, revealed, teammate)
       return
     }
     const next = revealed + 1
@@ -253,7 +273,7 @@ export default function StatLine() {
           {finished.won ? `Solved in ${finished.cluesUsed}/${finished.maxClues} clues! 🎉 (+${finished.score} pts)` : `The answer was ${finished.playerName}.`}
         </p>
         {!finished.won && finished.teammate && (
-          <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">Teammate that season: {finished.teammate}</p>
+          <p className="mb-4 whitespace-pre-line text-center text-sm text-[var(--color-text-secondary)]">{teammateClueText(finished.teammate)}</p>
         )}
         <ShareResult text={buildShareText('stat-line', today, finished)} />
         <GroupScoreBanner
@@ -309,11 +329,9 @@ export default function StatLine() {
           final guess. Showing it live here (once you're at the last clue
           tier, before that final guess) makes the hint functional instead of
           a pure "here's what you missed" consolation. */}
-      {teammates.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="rounded-full border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-1 text-xs font-semibold text-[var(--color-text)]">
-            🤝 Played with {teammates[0]}
-          </span>
+      {teammate && (
+        <div className="mt-3 whitespace-pre-line rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-2 text-xs font-semibold leading-snug text-[var(--color-text)]">
+          {teammateClueText(teammate)}
         </div>
       )}
 

@@ -237,7 +237,11 @@ export function buildMlbMystery(seasonRow, player) {
     teamFullName: teamInfo?.fullName ?? team,
     seasonConference: teamInfo?.league ?? null,
     seasonDivision: teamInfo?.division ?? null,
-    hasTeammateClue: false,
+    // MLB's clueSteps never literally contains '@teammate' (see
+    // MLB_CLUE_ORDERS) — the reveal mechanism doesn't require that, it just
+    // fires once every existing clue is exhausted, same as NFL-QB/NBA. Now
+    // enabled to match mobile, which already shows this for every sport.
+    hasTeammateClue: true,
     formatValue: (key) => mlbFormatValue(seasonRow, key),
   }
 }
