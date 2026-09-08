@@ -533,7 +533,7 @@ export async function submitGroupScore({ groupId, nickname, gameType, sport, era
   return row
 }
 
-function eraLabel(sport, eraKey) {
+export function eraLabel(sport, eraKey) {
   if (!eraKey || eraKey === 'all_time') return null
   const found = (ERAS[sport] || []).find((e) => e.key === eraKey)
   return found ? found.label : eraKey

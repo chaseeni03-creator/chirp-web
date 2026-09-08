@@ -16,16 +16,15 @@ export const SPORT_META = {
 // Progression all schedule a full era × difficulty matrix per day now, so the
 // web pages must let the player pick both, same as the admin schedules them.
 // rangeLabel matches each sport's *_era.dart rangeLabel exactly (shown as a
-// subtitle under the era name) — NFL has no separate 2020s bucket, so its
-// "2010s" era actually spans 2010-2025 (current data), not a clean decade;
-// without the subtitle that's not obvious from the label alone.
+// subtitle under the era name).
 export const ERAS = {
   nfl: [
     { key: 'seventies', label: '1970s', rangeLabel: '1970-1979' },
     { key: 'eighties', label: '1980s', rangeLabel: '1980-1989' },
     { key: 'nineties', label: '1990s', rangeLabel: '1989-1999' },
     { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2012' },
-    { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2025' },
+    { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2019' },
+    { key: 'twentyTwenties', label: '2020s', rangeLabel: '2020-2025' },
     { key: 'allTime', label: 'All Time', rangeLabel: '∞' },
   ],
   mlb: [
@@ -35,6 +34,7 @@ export const ERAS = {
     { key: 'nineties', label: '1990s', rangeLabel: '1990-1999' },
     { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2009' },
     { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2019' },
+    { key: 'twentyTwenties', label: '2020s', rangeLabel: '2020-2025' },
     { key: 'allTime', label: 'All Time', rangeLabel: '∞' },
   ],
   nba: [

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import SocialLinks from './SocialLinks'
 
 export default function WaitlistFooter() {
   const [email, setEmail] = useState('')
@@ -78,6 +79,8 @@ export default function WaitlistFooter() {
             </p>
           )}
         </div>
+
+        <SocialLinks className="mt-6 justify-center" />
 
         <div className="mt-6 flex justify-center gap-4 text-xs text-[var(--color-text-secondary)]">
           <Link to="/privacy" className="hover:text-[var(--color-text)]">Privacy Policy</Link>

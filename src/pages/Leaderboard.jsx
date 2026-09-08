@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import GameShell from '../components/GameShell'
 import { useSport } from '../context/SportContext'
 import { useGroup } from '../context/GroupContext'
-import { GAME_LABELS, GAME_ORDER } from '../lib/groups'
+import { GAME_LABELS, GAME_ORDER, eraLabel } from '../lib/groups'
 import { SPORTS, SPORT_META } from '../lib/sports'
 import { fetchDailyLeaderboardTop, fetchMyRank, subscribeToDailyLeaderboard, yesterdayStr } from '../lib/dailyLeaderboard'
 import { todayStr } from '../lib/supabase'
@@ -162,14 +162,19 @@ export default function Leaderboard() {
           </p>
         ) : (
           <ol className="space-y-1.5">
-            {rows.map((r) => (
-              <li key={`${r.rank}-${r.nickname}`} className="flex items-center justify-between text-sm">
-                <span>
-                  {MEDAL[r.rank] ? `${MEDAL[r.rank]} ` : ''}#{r.rank} {r.nickname}
-                </span>
-                <span className="font-bold">{r.score.toLocaleString()} pts</span>
-              </li>
-            ))}
+            {rows.map((r) => {
+              const label = eraLabel(sport, r.era)
+              return (
+                <li key={`${r.rank}-${r.nickname}`} className="flex items-center justify-between text-sm">
+                  <span>
+                    {MEDAL[r.rank] ? `${MEDAL[r.rank]} ` : ''}#{r.rank} {r.nickname}
+                  </span>
+                  <span className="font-bold">
+                    {r.score.toLocaleString()} pts{label && <span className="font-normal text-[var(--color-text-secondary)]"> ({label})</span>}
+                  </span>
+                </li>
+              )
+            })}
           </ol>
         )}
 

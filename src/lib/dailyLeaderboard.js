@@ -70,6 +70,12 @@ export async function fetchChampionsToday(gameDate = todayStr()) {
   return data || []
 }
 
+/** One-time, called right after a guest's first successful Google sign-in — reassigns their leaderboard rows to the new account. */
+export async function migrateGuestLeaderboardScores(guestId) {
+  const { error } = await supabase.rpc('migrate_guest_leaderboard_scores', { p_guest_id: guestId })
+  if (error) throw error
+}
+
 /**
  * Live updates for one day — Supabase Realtime's postgres_changes only
  * supports a single `column=eq.value` filter, not a compound AND, so this

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Seo from '../components/Seo'
-import { GAME_LABELS, GAME_ORDER } from '../lib/groups'
+import { GAME_LABELS, GAME_ORDER, eraLabel } from '../lib/groups'
 import { SPORTS, SPORT_META } from '../lib/sports'
 import { fetchChampionsToday } from '../lib/dailyLeaderboard'
 import { todayStr } from '../lib/supabase'
@@ -23,7 +23,7 @@ export default function Champions() {
       .then((rows) => {
         if (cancelled) return
         const map = {}
-        for (const r of rows) map[`${r.game_type}:${r.sport}`] = { nickname: r.nickname, score: r.score }
+        for (const r of rows) map[`${r.game_type}:${r.sport}`] = { nickname: r.nickname, score: r.score, era: r.era }
         setByKey(map)
       })
       .catch((err) => console.error('Champions load failed:', err))
@@ -51,12 +51,17 @@ export default function Champions() {
               <div className="divide-y divide-[var(--color-border)] rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)]">
                 {GAME_ORDER.map((game) => {
                   const champ = byKey[`${game}:${sport}`]
+                  const label = champ && eraLabel(sport, champ.era)
                   return (
                     <div key={game} className="flex items-center justify-between px-4 py-2.5 text-sm">
                       <span className="font-semibold text-[var(--color-text-secondary)]">{GAME_LABELS[game]}</span>
                       {champ ? (
                         <span className="font-bold">
-                          👑 {champ.nickname} <span className="text-[var(--color-text-secondary)]">{champ.score.toLocaleString()}</span>
+                          👑 {champ.nickname}{' '}
+                          <span className="text-[var(--color-text-secondary)]">
+                            {champ.score.toLocaleString()}
+                            {label && ` (${label})`}
+                          </span>
                         </span>
                       ) : (
                         <span className="text-[var(--color-text-secondary)]">No plays yet</span>

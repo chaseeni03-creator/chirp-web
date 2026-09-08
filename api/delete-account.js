@@ -32,6 +32,16 @@ export default async function handler(req, res) {
     return
   }
 
+  // daily_leaderboard.user_id already has ON DELETE CASCADE (see
+  // supabase/daily_leaderboard.sql), so auth.admin.deleteUser below would
+  // clean this up on its own — deleted explicitly anyway so this step keeps
+  // working even if that FK's cascade behavior ever changes.
+  const { error: leaderboardErr } = await supabase.from('daily_leaderboard').delete().eq('user_id', userId)
+  if (leaderboardErr) {
+    res.status(500).json({ error: 'Could not delete your leaderboard data' })
+    return
+  }
+
   const { error: deleteErr } = await supabase.auth.admin.deleteUser(userId)
   if (deleteErr) {
     res.status(500).json({ error: 'Could not delete your account' })

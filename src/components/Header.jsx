@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import SportSelector from './SportSelector'
+import AccountMenu from './AccountMenu'
 
 export default function Header() {
   return (
@@ -18,6 +19,7 @@ export default function Header() {
           <Link to="/groups" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             👥 Groups
           </Link>
+          <AccountMenu />
         </div>
       </div>
       <SportSelector />
