@@ -23,7 +23,18 @@ export function progressionPotentialScore({ totalSeasons, year, wrongGuesses }) 
   return Math.min(1000, Math.max(100, base))
 }
 
-/** DB spec: sacks only shown when non-zero (every other stat always shows, even at 0). */
+/**
+ * A stat with no real data (null) is never shown, whichever stat it is —
+ * e.g. tackles before 1994, sacks before 1982, neither tracked league-wide
+ * (see supabase/nfl_fix_missing_defensive_stats.sql). "Sacks only shown
+ * when non-zero" is a second, narrower DB-spec rule on top of that, for a
+ * genuine recorded 0 (every other stat always shows, even at a real 0).
+ */
 export function progressionStatKeysFor(config, season) {
-  return config.statKeys.filter((k) => k !== 'sacks' || (season[k] ?? 0) !== 0)
+  return config.statKeys.filter((k) => {
+    const v = season[k]
+    if (v === null || v === undefined) return false
+    if (k === 'sacks' && v === 0) return false
+    return true
+  })
 }

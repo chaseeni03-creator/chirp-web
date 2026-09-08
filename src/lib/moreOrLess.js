@@ -37,7 +37,8 @@ export const NFL_ERAS = [
   { key: 'eighties', label: '1980s', range: [1980, 1989] },
   { key: 'nineties', label: '1990s', range: [1989, 1999] },
   { key: 'twoThousands', label: '2000s', range: [2000, 2012] },
-  { key: 'twentyTens', label: '2010s', range: [2010, 2025] },
+  { key: 'twentyTens', label: '2010s', range: [2010, 2019] },
+  { key: 'twentyTwenties', label: '2020s', range: [2020, 2025] },
   { key: 'allTime', label: 'All Time', range: null },
 ]
 
@@ -132,11 +133,15 @@ export function statColumn(sport, stat) {
 
 export function questionText(stat) {
   const label = (stat.category.label || '').toUpperCase()
-  return stat.scope === 'career' ? `Who had more CAREER ${label}?` : `Who had more ${label} in ${stat.eraLabel}?`
+  if (stat.scope === 'career') return `Who had more CAREER ${label}?`
+  if (stat.scope === 'year') return `Who had more ${label} in ${stat.year}?`
+  return `Who had more ${label} in ${stat.eraLabel}?`
 }
 
 export function shortLabel(stat) {
-  return stat.scope === 'career' ? `Career ${stat.category.label}` : `${stat.category.label} (${stat.eraLabel})`
+  if (stat.scope === 'career') return `Career ${stat.category.label}`
+  if (stat.scope === 'year') return `${stat.category.label} (${stat.year})`
+  return `${stat.category.label} (${stat.eraLabel})`
 }
 
 // ── Random stat picker (mirrors _randomStat) ───────────────────────────────
@@ -170,6 +175,18 @@ function randomStat(sport, tables, { modeKey, era } = {}) {
   const categories = categoriesFor(sport)
   const category = categories[Math.floor(Math.random() * categories.length)]
   const canEra = (sport !== 'nba' || category.seasonKey != null) && hasEraWindow(sport, modeKey, era)
+  // Individual-year scope: a specific season inside the selected era (e.g.
+  // 2017 inside the 2010s) rather than only the whole-decade total. NFL
+  // only — MLB/NBA's "eras" here are curated multi-decade modes (Dead Ball,
+  // Modern, etc.), not year ranges the p_single_season RPC path understands.
+  if (canEra && sport === 'nfl' && era?.range) {
+    const roll = Math.random()
+    if (roll < 1 / 3) return { category, scope: 'career', eraLabel: null }
+    if (roll < 2 / 3) return { category, scope: 'era', eraLabel: eraLabelFor(sport, modeKey, era) }
+    const [start, end] = era.range
+    const year = start + Math.floor(Math.random() * (end - start + 1))
+    return { category, scope: 'year', eraLabel: null, year }
+  }
   if (canEra && Math.random() < 0.5) {
     return { category, scope: 'era', eraLabel: eraLabelFor(sport, modeKey, era) }
   }
@@ -244,10 +261,12 @@ export async function generateInitialMatchup(sport, tables, { modeKey, era, roun
   for (let attempt = 0; attempt < 20; attempt++) {
     const stat = randomStat(sport, tables, { modeKey, era })
     const relax = attempt >= 14
+    const isYear = stat.scope === 'year'
     const params = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_mode: modeKey }
     if (sport === 'nfl') {
-      params.p_era_start = era?.range?.[0] ?? null
-      params.p_era_end = era?.range?.[1] ?? null
+      params.p_era_start = isYear ? stat.year : (era?.range?.[0] ?? null)
+      params.p_era_end = isYear ? stat.year : (era?.range?.[1] ?? null)
+      params.p_single_season = isYear
     }
     const { data, error } = await supabase.rpc(rpc.pair, params)
     if (error || !data || data.length < 2) continue
@@ -269,10 +288,12 @@ export async function generateNextMatchup(sport, tables, { champion, modeKey, er
   for (let attempt = 0; attempt < 20; attempt++) {
     const stat = randomStat(sport, tables, { modeKey, era })
     const relax = attempt >= 14
+    const isYear = stat.scope === 'year'
     const valueParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_player_id: champion.id }
     if (sport === 'nfl') {
-      valueParams.p_era_start = era?.range?.[0] ?? null
-      valueParams.p_era_end = era?.range?.[1] ?? null
+      valueParams.p_era_start = isYear ? stat.year : (era?.range?.[0] ?? null)
+      valueParams.p_era_end = isYear ? stat.year : (era?.range?.[1] ?? null)
+      valueParams.p_single_season = isYear
     } else {
       valueParams.p_mode = modeKey
     }
@@ -282,8 +303,9 @@ export async function generateNextMatchup(sport, tables, { champion, modeKey, er
 
     const oppParams = { p_stat: statColumn(sport, stat), p_is_career: stat.scope === 'career', p_exclude_player_id: champion.id, p_limit: 8, p_mode: modeKey }
     if (sport === 'nfl') {
-      oppParams.p_era_start = era?.range?.[0] ?? null
-      oppParams.p_era_end = era?.range?.[1] ?? null
+      oppParams.p_era_start = isYear ? stat.year : (era?.range?.[0] ?? null)
+      oppParams.p_era_end = isYear ? stat.year : (era?.range?.[1] ?? null)
+      oppParams.p_single_season = isYear
     }
     const { data: oppRows, error: oppErr } = await supabase.rpc(rpc.opponent, oppParams)
     if (oppErr || !oppRows) continue
