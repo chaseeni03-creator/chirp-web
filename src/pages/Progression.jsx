@@ -10,6 +10,7 @@ import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
 import GroupScoreBanner from '../components/GroupScoreBanner'
+import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -227,6 +228,7 @@ export default function Progression() {
           score={finished.finalScore}
           details={`Year ${finished.seasonsRevealed}`}
         />
+        <DailyLeaderboardBanner gameType="progression" sport={sport} era={era} score={finished.finalScore} />
       </>
     )
   }

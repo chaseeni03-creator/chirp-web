@@ -9,13 +9,15 @@ import { todayStr } from '../lib/supabase'
 import { useSport } from '../context/SportContext'
 import { useGroup } from '../context/GroupContext'
 import { SPORT_META } from '../lib/sports'
-import { displayCode } from '../lib/groups'
+import { displayCode, GAME_LABELS } from '../lib/groups'
+import { fetchMyRank } from '../lib/dailyLeaderboard'
 
 export default function Home() {
   const { sport } = useSport()
-  const { activeGroup } = useGroup()
+  const { activeGroup, googleSession } = useGroup()
   const [completed, setCompleted] = useState({})
   const [showFriendsModal, setShowFriendsModal] = useState(false)
+  const [leaderboardRank, setLeaderboardRank] = useState(null) // { gameType, rank, total_players } | null
   const meta = SPORT_META[sport]
 
   useEffect(() => {
@@ -26,6 +28,26 @@ export default function Home() {
     }
     setCompleted(map)
   }, [sport])
+
+  // Light-touch banner: show the rank for whichever completed game comes
+  // first today, not a full per-game breakdown — keeps this page's data
+  // needs minimal (one extra request, not up to 7).
+  useEffect(() => {
+    const firstCompleted = games.find((g) => completed[g.key])
+    if (!firstCompleted) {
+      setLeaderboardRank(null)
+      return
+    }
+    let cancelled = false
+    fetchMyRank({ gameType: firstCompleted.key, sport, userId: googleSession?.user?.id ?? null })
+      .then((mine) => {
+        if (!cancelled) setLeaderboardRank(mine ? { gameType: firstCompleted.key, ...mine } : null)
+      })
+      .catch(() => !cancelled && setLeaderboardRank(null))
+    return () => {
+      cancelled = true
+    }
+  }, [completed, sport, googleSession])
 
   return (
     <div>
@@ -65,6 +87,15 @@ export default function Home() {
               Play with Friends 👥
             </button>
           </div>
+        )}
+
+        {leaderboardRank && (
+          <Link
+            to="/leaderboard"
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 px-4 py-2 text-xs font-bold text-[var(--color-primary)] sm:text-sm"
+          >
+            You're #{leaderboardRank.rank.toLocaleString()} on today's {GAME_LABELS[leaderboardRank.gameType]} leaderboard! View full leaderboard →
+          </Link>
         )}
       </div>
 

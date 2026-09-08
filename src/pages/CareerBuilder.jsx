@@ -13,6 +13,7 @@ import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
 import GroupScoreBanner from '../components/GroupScoreBanner'
+import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -300,6 +301,7 @@ export default function CareerBuilder() {
           score={finished.totalScore}
           details={`${finished.greenCount}/5 order`}
         />
+        <DailyLeaderboardBanner gameType="career-builder" sport={sport} era={era} score={finished.totalScore} />
       </>
     )
   }

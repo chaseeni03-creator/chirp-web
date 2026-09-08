@@ -3,7 +3,7 @@ import { buildMoreOrLessShareText } from './moreOrLess'
 
 export const SITE_URL = 'playchirpsports.com'
 
-function friendlyDate(dateStr) {
+export function friendlyDate(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number)
   const date = new Date(y, m - 1, d)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -81,6 +81,12 @@ export function buildShareText(gameKey, dateStr, payload) {
     default:
       return `Chirp Sports - ${date}\nPlay free at ${SITE_URL}`
   }
+}
+
+/** Shared by DailyLeaderboardBanner and the /leaderboard page's "Share Your Rank" button. */
+export function buildLeaderboardShareText({ gameLabel, dateStr, rank, totalPlayers, score }) {
+  const date = friendlyDate(dateStr)
+  return `🐦 ${gameLabel} - ${date}\nRank: #${rank.toLocaleString()} worldwide 🌍 (of ${totalPlayers.toLocaleString()})\nScore: ${Math.round(score).toLocaleString()} pts\nPlay at ${SITE_URL}`
 }
 
 export async function copyToClipboard(text) {

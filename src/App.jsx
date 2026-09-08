@@ -10,6 +10,8 @@ import Progression from './pages/Progression'
 import MoreOrLess from './pages/MoreOrLess'
 import Lineup from './pages/Lineup'
 import Grid from './pages/Grid'
+import Leaderboard from './pages/Leaderboard'
+import Champions from './pages/Champions'
 import GroupPage from './pages/GroupPage'
 import JoinGroupPage from './pages/JoinGroupPage'
 import Privacy from './pages/Privacy'
@@ -31,12 +33,16 @@ export default function App() {
               <Route path="/moreorless" element={<MoreOrLess />} />
               <Route path="/lineup" element={<Lineup />} />
               <Route path="/grid" element={<Grid />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/groups" element={<GroupPage />} />
               <Route path="/g/:code" element={<JoinGroupPage />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="*" element={<NotFound />} />
             </Route>
+            {/* Unlisted — no Header/nav chrome, direct URL only, for daily
+                Instagram-content screenshots. */}
+            <Route path="/champions" element={<Champions />} />
           </Routes>
         </BrowserRouter>
       </GroupProvider>

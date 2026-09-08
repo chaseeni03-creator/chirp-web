@@ -9,6 +9,7 @@ import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import GroupScoreBanner from '../components/GroupScoreBanner'
+import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 
 const MAX_GUESSES = 8
 
@@ -215,6 +216,7 @@ export default function ChirpGuess() {
           score={finished.groupScore}
           details={`${finished.guessCount}/${finished.maxGuesses} guesses`}
         />
+        <DailyLeaderboardBanner gameType="chirp-guess" sport={sport} era="all_time" score={finished.groupScore} />
       </GameShell>
     )
   }

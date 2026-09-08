@@ -12,6 +12,7 @@ import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import GroupScoreBanner from '../components/GroupScoreBanner'
+import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 
 const SECTIONS = {
   nfl: [{ key: 'offense', label: 'OFFENSE' }, { key: 'defense', label: 'DEFENSE' }],
@@ -149,6 +150,7 @@ export default function Lineup() {
         </div>
         <ShareResult text={buildShareText('lineup', today, finished)} />
         <GroupScoreBanner gameType="lineup" sport={sport} era="all_time" score={finished.totalScore} details={finished.scopeLabel} />
+        <DailyLeaderboardBanner gameType="lineup" sport={sport} era="all_time" score={finished.totalScore} />
 
         <div className="mt-6 space-y-4">
           {(sections || [{ key: null, label: null }]).map((sec) => (
