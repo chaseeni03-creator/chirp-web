@@ -12,12 +12,12 @@ export default function Header() {
           <img src="/bird-logo.png" alt="" className="h-6 w-6" />
           <span className="text-lg text-[var(--color-text)]">Sports</span>
         </Link>
-        <div className="flex items-center justify-self-end gap-3 text-xs font-bold sm:gap-4 sm:text-sm">
+        <div className="flex items-center justify-self-end gap-2 text-xs font-bold sm:gap-4 sm:text-sm">
           <Link to="/leaderboard" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
-            🏆 Leaderboard
+            🏆 <span className="hidden sm:inline">Leaderboard</span>
           </Link>
           <Link to="/groups" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
-            👥 Groups
+            👥 <span className="hidden sm:inline">Groups</span>
           </Link>
           <AccountMenu />
         </div>
