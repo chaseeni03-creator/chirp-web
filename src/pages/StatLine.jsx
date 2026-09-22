@@ -9,6 +9,7 @@ import {
   nflHintsAgainst, HINT_LABELS, nflTeammateImpact, mlbTeammateImpact, nbaTeammateImpact,
   isRevealed, gridStatKeys,
 } from '../lib/statLine'
+import { mlbCanonicalCode } from '../lib/chirpGuess'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
@@ -78,7 +79,14 @@ async function fetchTeammates(sport, tables, team, season, excludeId) {
   if (byPlayer.size === 0) return null
 
   const top = [...byPlayer.values()].sort((a, b) => b.bestImpact - a.bestImpact)[0]
-  return { name: top.name, team, playedTogether: top.seasons.has(season) }
+  // `team` (the query param above) has to stay the raw stored code — MLB's
+  // nfl_season_stats-equivalent table stores Lahman teamIDs like 'CHN'
+  // verbatim, and the .eq('team', team) query above only matches that raw
+  // value. The DISPLAYED team in the clue text below is a different
+  // concern — resolved to the canonical code (e.g. 'CHC') for MLB only, so
+  // "Both played for CHN" doesn't show a Retrosheet code nobody recognizes.
+  const displayTeam = sport === 'mlb' ? mlbCanonicalCode(team) : team
+  return { name: top.name, team: displayTeam, playedTogether: top.seasons.has(season) }
 }
 
 function teammateClueText(teammate) {
