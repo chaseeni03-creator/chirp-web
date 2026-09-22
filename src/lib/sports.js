@@ -22,7 +22,7 @@ export const ERAS = {
     { key: 'seventies', label: '1970s', rangeLabel: '1970-1979' },
     { key: 'eighties', label: '1980s', rangeLabel: '1980-1989' },
     { key: 'nineties', label: '1990s', rangeLabel: '1989-1999' },
-    { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2012' },
+    { key: 'twoThousands', label: '2000s', rangeLabel: '2000-2009' },
     { key: 'twentyTens', label: '2010s', rangeLabel: '2010-2019' },
     { key: 'twentyTwenties', label: '2020s', rangeLabel: '2020-2025' },
     { key: 'allTime', label: 'All Time', rangeLabel: '∞' },

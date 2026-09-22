@@ -36,7 +36,7 @@ export const NFL_ERAS = [
   { key: 'seventies', label: '1970s', range: [1970, 1979] },
   { key: 'eighties', label: '1980s', range: [1980, 1989] },
   { key: 'nineties', label: '1990s', range: [1989, 1999] },
-  { key: 'twoThousands', label: '2000s', range: [2000, 2012] },
+  { key: 'twoThousands', label: '2000s', range: [2000, 2009] },
   { key: 'twentyTens', label: '2010s', range: [2010, 2019] },
   { key: 'twentyTwenties', label: '2020s', range: [2020, 2025] },
   { key: 'allTime', label: 'All Time', range: null },
