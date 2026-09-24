@@ -16,6 +16,7 @@ export default function Home() {
   const { sport } = useSport()
   const { activeGroup, googleSession } = useGroup()
   const [completed, setCompleted] = useState({})
+  const [beforeOrAfterDone, setBeforeOrAfterDone] = useState(false)
   const [showFriendsModal, setShowFriendsModal] = useState(false)
   const [leaderboardRank, setLeaderboardRank] = useState(null) // { gameType, rank, total_players } | null
   const meta = SPORT_META[sport]
@@ -27,6 +28,10 @@ export default function Home() {
       map[g.key] = Boolean(getTodayResult(`${sport}-${g.key}`, today))
     }
     setCompleted(map)
+    // Before or After isn't sport-scoped (same puzzle regardless of the
+    // sport tab), so its completion key has no sport prefix, unlike the
+    // per-sport games above.
+    setBeforeOrAfterDone(Boolean(getTodayResult('before-or-after', today)))
   }, [sport])
 
   // Light-touch banner: show the rank for whichever completed game comes
@@ -97,6 +102,23 @@ export default function Home() {
             You're #{leaderboardRank.rank.toLocaleString()} on today's {GAME_LABELS[leaderboardRank.gameType]} leaderboard! View full leaderboard →
           </Link>
         )}
+      </div>
+
+      {/* Cross-sport — the same puzzle regardless of the sport tab above, so
+          it gets its own row instead of living inside the per-sport grid
+          below (whose "Done" badges reset per sport, unlike this one). */}
+      <div className="mb-3">
+        <GameCard
+          game={{
+            key: 'before-or-after',
+            path: '/before-or-after',
+            name: 'Before or After',
+            emoji: '📅',
+            description: () => 'Two sports events. Tap the one that happened first — 10/day, all sports.',
+          }}
+          sportLabel={meta.label}
+          completed={beforeOrAfterDone}
+        />
       </div>
 
       <div id="games" className="grid grid-cols-1 gap-3 sm:grid-cols-2">

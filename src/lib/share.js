@@ -71,6 +71,11 @@ export function buildShareText(gameKey, dateStr, payload) {
       const emoji = sport === 'mlb' ? '⚾' : '🐦🏈'
       return `${title} - ${date}\n${scopeLabel}\n\n${sectionALabel}:\n${a}\n\n${sectionBLabel}:\n${b}\n\nScore: ${scoreStr}/${maxScore} ${emoji}`
     }
+    case 'before-or-after': {
+      const { correctCount, score, streak } = payload
+      const streakLine = streak > 0 ? `\n🔥 ${streak} day streak` : ''
+      return `Before or After 📅 ${date}\n✅ ${correctCount}/10 correct\n🏆 ${score.toLocaleString()}/10,000 pts${streakLine}\nCan you beat me? ${SITE_URL}`
+    }
     case 'grid': {
       const { sport, grid: cells, totalScore } = payload
       const gridRows = [0, 1, 2].map((r) => [0, 1, 2].map((c) => (cells[r * 3 + c] ? '✅' : '❌')).join('')).join('\n')
