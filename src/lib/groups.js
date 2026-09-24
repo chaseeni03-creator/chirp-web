@@ -30,6 +30,19 @@ export const GAME_LABELS = {
   grid: 'Chirp Grid',
 }
 export const GAME_ORDER = Object.keys(GAME_LABELS)
+
+// Cross-sport games — kept OUT of GAME_LABELS/GAME_ORDER on purpose:
+// Champions.jsx and GroupPage.jsx both iterate GAME_ORDER once per real
+// sport (nfl/mlb/nba) and look up `${game}:${sport}`, which would only ever
+// find "no plays yet"/"not played" for a game that always submits under
+// sport='all' — a permanently-broken-looking row, not a working feature.
+// Leaderboard.jsx is the one place that handles these specially (its own
+// sport-selector is per-page-instance, not a fixed per-sport loop), so it
+// merges this in separately. Add a new cross-sport game here, not to
+// GAME_LABELS, unless Champions/GroupPage get real support for one.
+export const CROSS_SPORT_GAME_LABELS = {
+  'before-or-after': 'Before or After',
+}
 export const GAME_PATHS = {
   'chirp-guess': '/guess',
   'stat-line': '/statline',

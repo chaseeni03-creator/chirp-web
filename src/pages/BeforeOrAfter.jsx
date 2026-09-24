@@ -5,6 +5,7 @@ import { buildShareText } from '../lib/share'
 import { getTodaysQuestions, scoreFor, TOTAL_QUESTIONS, SECONDS_PER_QUESTION } from '../lib/beforeOrAfter'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import ShareResult from '../components/ShareResult'
+import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 
 const GAME_KEY = 'before-or-after'
 const REVEAL_PAUSE_MS = 1200
@@ -165,6 +166,7 @@ export default function BeforeOrAfter() {
           {streak > 0 && <p className="mt-2 text-sm font-bold text-[var(--color-warning)]">🔥 {streak} day streak</p>}
         </div>
         <ShareResult text={buildShareText('before-or-after', today, finished)} />
+        <DailyLeaderboardBanner gameType="before-or-after" sport="all" score={finished.score} />
         <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
           Come back tomorrow for 10 new questions!
         </p>

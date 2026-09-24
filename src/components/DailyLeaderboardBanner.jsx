@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGroup } from '../context/GroupContext'
-import { GAME_LABELS, sanitizeNickname } from '../lib/groups'
+import { GAME_LABELS, CROSS_SPORT_GAME_LABELS, sanitizeNickname } from '../lib/groups'
 import { getLeaderboardIdentity, setLeaderboardNickname } from '../lib/leaderboardIdentity'
 import { submitDailyScore, fetchMyRank } from '../lib/dailyLeaderboard'
 import { buildLeaderboardShareText, copyToClipboard, SITE_URL } from '../lib/share'
 import { todayStr } from '../lib/supabase'
 
 const MEDAL = { 1: '👑', 2: '🥈', 3: '🥉' }
+const ALL_GAME_LABELS = { ...GAME_LABELS, ...CROSS_SPORT_GAME_LABELS }
 
 /**
  * Submits today's score to the GLOBAL leaderboard on mount and shows a
@@ -63,7 +64,7 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   async function handleShare() {
     if (!result) return
     const text = buildLeaderboardShareText({
-      gameLabel: GAME_LABELS[gameType] || gameType,
+      gameLabel: ALL_GAME_LABELS[gameType] || gameType,
       dateStr: todayStr(),
       rank: result.rank,
       totalPlayers: result.total_players,
@@ -118,7 +119,7 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
         <>
           <p className="font-bold">
             You ranked {MEDAL[result.rank] ? `${MEDAL[result.rank]} #${result.rank}` : `#${result.rank}`} today in{' '}
-            {GAME_LABELS[gameType] || gameType}
+            {ALL_GAME_LABELS[gameType] || gameType}
             {result.total_players ? ` out of ${result.total_players.toLocaleString()} players!` : '!'}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import GameShell from '../components/GameShell'
 import { useSport } from '../context/SportContext'
 import { useGroup } from '../context/GroupContext'
-import { GAME_LABELS, GAME_ORDER, eraLabel } from '../lib/groups'
+import { GAME_LABELS, GAME_ORDER, CROSS_SPORT_GAME_LABELS, eraLabel } from '../lib/groups'
 import { SPORTS, SPORT_META } from '../lib/sports'
 import { fetchDailyLeaderboardTop, fetchMyRank, subscribeToDailyLeaderboard, yesterdayStr } from '../lib/dailyLeaderboard'
 import { todayStr } from '../lib/supabase'
@@ -11,14 +11,22 @@ import { buildLeaderboardShareText, copyToClipboard, friendlyDate } from '../lib
 
 const MEDAL = { 1: '👑', 2: '🥈', 3: '🥉' }
 
+// Every selectable game on this page — per-sport games plus the cross-sport
+// ones (kept out of GAME_ORDER itself; see groups.js). Cross-sport games
+// always query/display sport='all' regardless of the site's sport tab.
+const ALL_GAME_TYPES = [...GAME_ORDER, ...Object.keys(CROSS_SPORT_GAME_LABELS)]
+const ALL_GAME_LABELS = { ...GAME_LABELS, ...CROSS_SPORT_GAME_LABELS }
+
 export default function Leaderboard() {
   const [searchParams] = useSearchParams()
   const { sport, setSport } = useSport()
   const { googleSession } = useGroup()
   const [gameType, setGameType] = useState(() => {
     const requested = searchParams.get('game')
-    return requested && GAME_ORDER.includes(requested) ? requested : GAME_ORDER[0]
+    return requested && ALL_GAME_TYPES.includes(requested) ? requested : ALL_GAME_TYPES[0]
   })
+  const isCrossSport = gameType in CROSS_SPORT_GAME_LABELS
+  const effectiveSport = isCrossSport ? 'all' : sport
   const [period, setPeriod] = useState('today') // 'today' | 'yesterday'
   const [rows, setRows] = useState([])
   const [mine, setMine] = useState(null)
@@ -41,8 +49,8 @@ export default function Leaderboard() {
     setLoading(true)
     try {
       const [top, myRank] = await Promise.all([
-        fetchDailyLeaderboardTop({ gameType, sport, gameDate }),
-        fetchMyRank({ gameType, sport, gameDate, userId }),
+        fetchDailyLeaderboardTop({ gameType, sport: effectiveSport, gameDate }),
+        fetchMyRank({ gameType, sport: effectiveSport, gameDate, userId }),
       ])
       setRows(top)
       setMine(myRank)
@@ -53,7 +61,7 @@ export default function Leaderboard() {
     } finally {
       setLoading(false)
     }
-  }, [gameType, sport, gameDate, userId])
+  }, [gameType, effectiveSport, gameDate, userId])
 
   useEffect(() => {
     load()
@@ -70,17 +78,17 @@ export default function Leaderboard() {
       gameDate,
       (payload) => {
         const row = payload.new || payload.old
-        if (row && row.game_type === gameType && row.sport === sport) load()
+        if (row && row.game_type === gameType && row.sport === effectiveSport) load()
       },
       () => setLive(false)
     )
     return unsubscribe
-  }, [gameDate, gameType, sport, period, load])
+  }, [gameDate, gameType, effectiveSport, period, load])
 
   async function handleShare() {
     if (!mine) return
     const text = buildLeaderboardShareText({
-      gameLabel: GAME_LABELS[gameType],
+      gameLabel: ALL_GAME_LABELS[gameType],
       dateStr: gameDate,
       rank: mine.rank,
       totalPlayers: mine.total_players,
@@ -94,7 +102,7 @@ export default function Leaderboard() {
   return (
     <GameShell emoji="🏆" title="Leaderboard">
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
-        {GAME_ORDER.map((g) => (
+        {ALL_GAME_TYPES.map((g) => (
           <button
             key={g}
             onClick={() => setGameType(g)}
@@ -104,29 +112,34 @@ export default function Leaderboard() {
                 : 'border border-[var(--color-border)] bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
             }`}
           >
-            {GAME_LABELS[g]}
+            {ALL_GAME_LABELS[g]}
           </button>
         ))}
       </div>
 
-      <div className="mb-4 flex gap-1.5">
-        {SPORTS.map((s) => {
-          const meta = SPORT_META[s]
-          return (
-            <button
-              key={s}
-              onClick={() => setSport(s)}
-              className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
-                sport === s
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'border border-[var(--color-border)] bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
-              }`}
-            >
-              {meta.emoji} {meta.label}
-            </button>
-          )
-        })}
-      </div>
+      {/* Cross-sport games (like Before or After) have no sport to pick —
+          they always show the one global board, so this row just doesn't
+          apply and is hidden rather than shown-but-inert. */}
+      {!isCrossSport && (
+        <div className="mb-4 flex gap-1.5">
+          {SPORTS.map((s) => {
+            const meta = SPORT_META[s]
+            return (
+              <button
+                key={s}
+                onClick={() => setSport(s)}
+                className={`rounded-full px-3 py-1.5 text-xs font-bold transition-colors ${
+                  sport === s
+                    ? 'bg-[var(--color-primary)] text-white'
+                    : 'border border-[var(--color-border)] bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {meta.emoji} {meta.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       <div className="mb-4 flex gap-4 text-sm">
         <button
@@ -146,12 +159,12 @@ export default function Leaderboard() {
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
         <div className="mb-1 flex items-start justify-between gap-2">
           <p className="font-extrabold">
-            🏆 {period === 'today' ? "Today's" : "Yesterday's"} {GAME_LABELS[gameType]} Leaders
+            🏆 {period === 'today' ? "Today's" : "Yesterday's"} {ALL_GAME_LABELS[gameType]} Leaders
           </p>
           {live && <span className="shrink-0 text-xs font-bold text-red-500">🔴 Live</span>}
         </div>
         <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
-          {SPORT_META[sport].label} · {friendlyDate(gameDate)}
+          {isCrossSport ? 'All Sports' : SPORT_META[sport].label} · {friendlyDate(gameDate)}
         </p>
 
         {loading ? (
@@ -163,7 +176,7 @@ export default function Leaderboard() {
         ) : (
           <ol className="space-y-1.5">
             {rows.map((r) => {
-              const label = eraLabel(sport, r.era)
+              const label = eraLabel(effectiveSport, r.era)
               return (
                 <li key={`${r.rank}-${r.nickname}`} className="flex items-center justify-between text-sm">
                   <span>
