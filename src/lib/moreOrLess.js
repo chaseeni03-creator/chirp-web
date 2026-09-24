@@ -78,6 +78,16 @@ export function modesFor(sport) {
 
 // ── Categories ───────────────────────────────────────────────────────────
 
+// Offense-only, by design — sacks/interceptions_caught/tackles were removed
+// (mirrors lib/models/matchup.dart's whoHadMoreCategories in chirp_sports).
+// Nonzero values for these 7 already imply a real offensive contribution
+// regardless of listed position (a QB with rushing yards, a RB with
+// receiving yards are both legitimate) — the 3 defensive counting stats had
+// to go rather than be filtered by position, since a WR or RB can rack up a
+// few incidental tackles/forced turnovers over a career (special-teams
+// coverage, chasing a return) with real nonzero values, which reads as a
+// broken question ("who had more tackles, two wide receivers?") even though
+// the number itself is accurate.
 export const NFL_CATEGORIES = [
   { key: 'rushing_yards', label: 'Rushing Yards' },
   { key: 'passing_yards', label: 'Passing Yards' },
@@ -86,9 +96,6 @@ export const NFL_CATEGORIES = [
   { key: 'passing_touchdowns', label: 'Passing TDs' },
   { key: 'receiving_touchdowns', label: 'Receiving TDs' },
   { key: 'receptions', label: 'Receptions' },
-  { key: 'sacks', label: 'Sacks' },
-  { key: 'interceptions_caught', label: 'Interceptions' },
-  { key: 'tackles', label: 'Tackles' },
 ]
 
 export const MLB_CATEGORIES = [
