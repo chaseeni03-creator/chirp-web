@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { todayStr } from '../lib/supabase'
-import { getTodayResult, saveTodayResult, bumpStreak } from '../lib/storage'
+import { getTodayResult, saveTodayResult, bumpStreak, getInProgress, saveInProgress } from '../lib/storage'
 import { buildShareText } from '../lib/share'
 import { getTodaysQuestions, scoreFor, TOTAL_QUESTIONS, SECONDS_PER_QUESTION } from '../lib/beforeOrAfter'
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
@@ -76,6 +76,17 @@ export default function BeforeOrAfter() {
           setError('No Before or After puzzle scheduled for today.')
         } else {
           setQuestions(rows)
+          // Mid-session resume — picks up at the saved question/score with a
+          // fresh timer (leftover seconds on whichever question they left on
+          // aren't preserved; the timer's point is per-question tension, not
+          // a strict overall countdown, so restarting that one question's
+          // clock is simpler and safer than persisting sub-second state).
+          const saved = getInProgress(GAME_KEY, today)
+          if (saved && saved.index > 0 && saved.index < TOTAL_QUESTIONS) {
+            correctCountRef.current = saved.correctCount ?? 0
+            setCorrectCount(correctCountRef.current)
+            setIndex(saved.index)
+          }
         }
         setLoading(false)
       })
@@ -129,9 +140,11 @@ export default function BeforeOrAfter() {
       if (index + 1 >= TOTAL_QUESTIONS) {
         finish()
       } else {
-        setIndex((i) => i + 1)
+        const nextIndex = index + 1
+        setIndex(nextIndex)
         setRevealing(false)
         setLastPicked(null)
+        saveInProgress(GAME_KEY, today, { index: nextIndex, correctCount: correctCountRef.current })
       }
     }, REVEAL_PAUSE_MS)
   }
