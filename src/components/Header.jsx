@@ -13,6 +13,9 @@ export default function Header() {
           <span className="text-lg text-[var(--color-text)]">Sports</span>
         </Link>
         <div className="flex items-center justify-self-end gap-2 text-xs font-bold sm:gap-4 sm:text-sm">
+          <Link to="/how-to-play" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            📖 <span className="hidden sm:inline">How to Play</span>
+          </Link>
           <Link to="/leaderboard" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             🏆 <span className="hidden sm:inline">Leaderboard</span>
           </Link>

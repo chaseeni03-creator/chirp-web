@@ -11,6 +11,7 @@ import MoreOrLess from './pages/MoreOrLess'
 import Lineup from './pages/Lineup'
 import Grid from './pages/Grid'
 import BeforeOrAfter from './pages/BeforeOrAfter'
+import HowToPlay from './pages/HowToPlay'
 import Leaderboard from './pages/Leaderboard'
 import Champions from './pages/Champions'
 import GroupPage from './pages/GroupPage'
@@ -35,6 +36,7 @@ export default function App() {
               <Route path="/lineup" element={<Lineup />} />
               <Route path="/grid" element={<Grid />} />
               <Route path="/before-or-after" element={<BeforeOrAfter />} />
+              <Route path="/how-to-play" element={<HowToPlay />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/groups" element={<GroupPage />} />
               <Route path="/g/:code" element={<JoinGroupPage />} />
