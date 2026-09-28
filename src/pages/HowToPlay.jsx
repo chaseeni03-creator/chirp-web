@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom'
 import Seo from '../components/Seo'
 
+const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten']
+
 const GAMES = [
   {
     id: 'chirp-guess',
@@ -176,32 +178,36 @@ const GAMES = [
       "If you're torn between two plausible names for a category, remember the reveal shows the real top 3 — a runner-up guess (2nd or 3rd) still scores real points, so it's rarely worth leaving a category blank.",
     ],
   },
-  {
-    id: 'grid',
-    emoji: '⬛',
-    name: 'Chirp Grid',
-    path: '/grid',
-    tagline: 'A 3×3 grid where every square needs a real player who satisfies both its row and column.',
-    how: [
-      "You get a 3×3 grid with a category assigned to each row and each column — things like a team, a stat threshold, an award, or a career milestone. Every square is the intersection of one row category and one column category, and you need to name a real player who satisfies both at once.",
-      "Type a name and pick from the search dropdown to fill a square. Each player can only be used once across the whole grid, so a name that fits two different squares still only gets to fill one of them.",
-    ],
-    scoring: {
-      summary: 'Scoring is straightforward — every correct square is worth the same, with one bonus for clearing the whole board:',
-      table: [
-        ['Each correct square', '100 pts'],
-        ['Perfect grid (9/9 correct)', '+500 pts bonus'],
-        ['Maximum possible score', '1,400 pts'],
-      ],
-      note: 'There is no rarity bonus for an obscure pick over an obvious one here — a square filled with a household name scores exactly the same as one filled with a deep-cut role player, so accuracy is all that matters, not cleverness.',
-    },
-    tips: [
-      "Solve your most confident square first, especially if the player you have in mind could plausibly fit a second square too — locking them in early avoids a conflict later where you need that name in two places at once.",
-      "Work out the hardest-looking intersection early rather than last — if you can't find anyone for it, you'll want to know that before you've already used up your best candidates elsewhere on the grid.",
-      "Career-spanning categories (a stat threshold, a milestone) usually have far more valid answers than single-season or single-team categories — save your most flexible squares for last, since you have the most options there.",
-      "When two categories seem to point toward the same obvious star player, double check they actually satisfy BOTH conditions — it's an easy trap to assume a fit that doesn't quite hold up.",
-    ],
-  },
+  // Chirp Grid is temporarily hidden site-wide (all sports) — known scoring/
+  // gameplay issues under investigation (see games.js/groups.js/App.jsx for
+  // the matching removal from Home, Leaderboard, Champions, Groups, and the
+  // /grid route itself). Restore this section once the game is back.
+  // {
+  //   id: 'grid',
+  //   emoji: '⬛',
+  //   name: 'Chirp Grid',
+  //   path: '/grid',
+  //   tagline: 'A 3×3 grid where every square needs a real player who satisfies both its row and column.',
+  //   how: [
+  //     "You get a 3×3 grid with a category assigned to each row and each column — things like a team, a stat threshold, an award, or a career milestone. Every square is the intersection of one row category and one column category, and you need to name a real player who satisfies both at once.",
+  //     "Type a name and pick from the search dropdown to fill a square. Each player can only be used once across the whole grid, so a name that fits two different squares still only gets to fill one of them.",
+  //   ],
+  //   scoring: {
+  //     summary: 'Scoring is straightforward — every correct square is worth the same, with one bonus for clearing the whole board:',
+  //     table: [
+  //       ['Each correct square', '100 pts'],
+  //       ['Perfect grid (9/9 correct)', '+500 pts bonus'],
+  //       ['Maximum possible score', '1,400 pts'],
+  //     ],
+  //     note: 'There is no rarity bonus for an obscure pick over an obvious one here — a square filled with a household name scores exactly the same as one filled with a deep-cut role player, so accuracy is all that matters, not cleverness.',
+  //   },
+  //   tips: [
+  //     "Solve your most confident square first, especially if the player you have in mind could plausibly fit a second square too — locking them in early avoids a conflict later where you need that name in two places at once.",
+  //     "Work out the hardest-looking intersection early rather than last — if you can't find anyone for it, you'll want to know that before you've already used up your best candidates elsewhere on the grid.",
+  //     "Career-spanning categories (a stat threshold, a milestone) usually have far more valid answers than single-season or single-team categories — save your most flexible squares for last, since you have the most options there.",
+  //     "When two categories seem to point toward the same obvious star player, double check they actually satisfy BOTH conditions — it's an easy trap to assume a fit that doesn't quite hold up.",
+  //   ],
+  // },
 ]
 
 export default function HowToPlay() {
@@ -209,7 +215,7 @@ export default function HowToPlay() {
     <div>
       <Seo
         title="How to Play"
-        description="A complete guide to every Chirp Sports game — Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, The Lineup, and Chirp Grid. How each game works, exactly how scoring is calculated, and real tips for playing better."
+        description="A complete guide to every Chirp Sports game — Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, and The Lineup. How each game works, exactly how scoring is calculated, and real tips for playing better."
       />
 
       <div className="mb-8 text-center">
@@ -217,8 +223,9 @@ export default function HowToPlay() {
           How to Play <span className="text-[var(--color-primary)]">Chirp Sports</span>
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--color-text-secondary)] sm:text-base">
-          Seven daily sports games, built entirely on real stats — no trivia, no made-up questions. Here's exactly
-          how each one works, exactly how scoring is calculated, and real tips for getting better at each.
+          {NUMBER_WORDS[GAMES.length] ?? GAMES.length} daily sports games, built entirely on real stats — no trivia,
+          no made-up questions. Here's exactly how each one works, exactly how scoring is calculated, and real tips
+          for getting better at each.
         </p>
       </div>
 

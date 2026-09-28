@@ -58,7 +58,7 @@ export default function Home() {
     <div>
       <Seo
         title={meta.gamesTitle}
-        description={`Free daily ${meta.label} games: Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, The Lineup, and Chirp Grid.`}
+        description={`Free daily ${meta.label} games: Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, and The Lineup.`}
       />
 
       <div className="mb-6 text-center sm:mb-8">

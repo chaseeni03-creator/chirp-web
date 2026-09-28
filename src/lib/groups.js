@@ -20,6 +20,10 @@ const LS_KEY = 'chirp-web:user'
 const LS_GUEST_CREATED_KEY = 'chirp-web:guest-groups-created' // soft, client-side only — guests have no server identity to enforce this against
 const LS_FAILED_JOINS_KEY = 'chirp-web:failed-joins'
 
+// Chirp Grid is temporarily hidden site-wide (all sports) — known scoring/
+// gameplay issues under investigation. Removed from GAME_LABELS so it drops
+// out of GAME_ORDER (and every page that iterates it: Leaderboard, Champions,
+// Groups) along with games.js's matching removal. Restore by uncommenting.
 export const GAME_LABELS = {
   'chirp-guess': 'Chirp Guess',
   'stat-line': 'Stat Line',
@@ -27,7 +31,7 @@ export const GAME_LABELS = {
   progression: 'The Progression',
   'more-or-less': 'More vs Less',
   lineup: 'The Lineup',
-  grid: 'Chirp Grid',
+  // grid: 'Chirp Grid',
 }
 export const GAME_ORDER = Object.keys(GAME_LABELS)
 
@@ -50,7 +54,7 @@ export const GAME_PATHS = {
   progression: '/progression',
   'more-or-less': '/moreorless',
   lineup: '/lineup',
-  grid: '/grid',
+  // grid: '/grid',
 }
 
 export class NicknameTakenError extends Error {

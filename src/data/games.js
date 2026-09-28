@@ -41,13 +41,19 @@ export const games = [
     emoji: '📋',
     description: (sportLabel) => `Fill 9 ${sportLabel} stat-leader categories for today's scope.`,
   },
-  {
-    key: 'grid',
-    path: '/grid',
-    name: 'Chirp Grid',
-    emoji: '🔢',
-    description: () => 'Find a player for each square of the 3×3 grid.',
-  },
+  // Chirp Grid is temporarily hidden site-wide (all sports) — known scoring/
+  // gameplay issues under investigation. The /grid route, page, and lib code
+  // are all still intact; this is the one line that keeps it off Home,
+  // Leaderboard, Champions, Groups, and How to Play (see the matching removal
+  // from GAME_LABELS in groups.js and from HowToPlay.jsx's GAMES list).
+  // Restore by uncommenting this entry once fixed.
+  // {
+  //   key: 'grid',
+  //   path: '/grid',
+  //   name: 'Chirp Grid',
+  //   emoji: '🔢',
+  //   description: () => 'Find a player for each square of the 3×3 grid.',
+  // },
 ]
 
 export function gameByKey(key) {

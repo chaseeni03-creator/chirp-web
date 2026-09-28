@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { SportProvider } from './context/SportContext'
 import { GroupProvider } from './context/GroupContext'
 import Layout from './components/Layout'
@@ -9,7 +9,7 @@ import CareerBuilder from './pages/CareerBuilder'
 import Progression from './pages/Progression'
 import MoreOrLess from './pages/MoreOrLess'
 import Lineup from './pages/Lineup'
-import Grid from './pages/Grid'
+// import Grid from './pages/Grid' — hidden site-wide, see the /grid route below
 import BeforeOrAfter from './pages/BeforeOrAfter'
 import HowToPlay from './pages/HowToPlay'
 import Leaderboard from './pages/Leaderboard'
@@ -34,7 +34,13 @@ export default function App() {
               <Route path="/progression" element={<Progression />} />
               <Route path="/moreorless" element={<MoreOrLess />} />
               <Route path="/lineup" element={<Lineup />} />
-              <Route path="/grid" element={<Grid />} />
+              {/* Chirp Grid is temporarily hidden (all sports) — known
+                  scoring/gameplay issues under investigation. Redirects
+                  rather than just dropping from nav, so an old link,
+                  bookmark, or search result doesn't land anyone on the
+                  broken game. Restore by swapping this back to
+                  <Route path="/grid" element={<Grid />} /> once fixed. */}
+              <Route path="/grid" element={<Navigate to="/" replace />} />
               <Route path="/before-or-after" element={<BeforeOrAfter />} />
               <Route path="/how-to-play" element={<HowToPlay />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
