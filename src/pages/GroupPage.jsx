@@ -52,13 +52,16 @@ export default function GroupPage() {
   const loadMembers = useCallback(() => {
     if (!activeGroup) return
     setMembersError(false)
-    fetchGroupMembers(activeGroup.id)
+    // leaderboard_group_members' direct-read RLS is gated on auth.uid()
+    // membership, which a guest session can never satisfy — guests read
+    // through the SECURITY DEFINER RPC branch instead (see fetchGroupMembers).
+    fetchGroupMembers(activeGroup.id, { asGuest: user?.type === 'guest' })
       .then(setMembers)
       .catch((err) => {
         console.error('Members load error:', err)
         setMembersError(true)
       })
-  }, [activeGroup])
+  }, [activeGroup, user])
 
   useEffect(() => {
     loadBoard()

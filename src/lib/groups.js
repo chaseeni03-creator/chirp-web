@@ -1,22 +1,42 @@
-// Groups feature v2: Google Sign-In (via Supabase Auth, same provider the
-// Flutter app uses) or guest mode (nickname + 4-digit PIN, localStorage only).
-// A member is either a real Supabase Auth user (user_id set, is_guest=false,
-// works on any device) or a guest (user_id null, is_guest=true, tied to this
-// browser + whatever PIN they picked). See supabase/web_groups_auth.sql for
-// why guest ownership/deletes are app-level trust, not RLS-enforced — there's
-// no Supabase Auth session for a guest to check auth.uid() against.
+// Groups feature v3: membership now lives on the Flutter app's own schema
+// (leaderboard_groups/leaderboard_group_members, see
+// supabase/leaderboard_groups_guest.sql and leaderboard_groups_web.sql in
+// chirp_sports) — Google Sign-In (via Supabase Auth, same provider/session
+// the app uses) or guest mode (nickname + 4-digit PIN, localStorage only,
+// same trust model as before: no server-side way to verify "this device
+// owns nickname X", so PIN checks/deletes are app-level trust, not
+// RLS-enforced).
+//
+// web_group_scores (this file's Score section, below) is DELIBERATELY
+// UNCHANGED — same table, same columns, same submitGroupScore/
+// fetchGroupLeaderboard shape as always. Only group/member IDENTITY moved;
+// score storage stays fully separate from the app's own game_results-based
+// leaderboard (see the migration's own header comment for why unifying
+// that too isn't part of this).
+//
+// Two schema gaps the app's tables don't have, resolved here rather than
+// with more SQL:
+// - No per-membership nickname for a real account (only guests get a
+//   stored nickname; leaderboard_group_members.nickname is NULL by
+//   constraint for a user_id row) — a signed-in Google user's group
+//   identity is their profile display_name/username instead, same
+//   convention the app's own UI already uses everywhere else. This does
+//   mean a Google user can no longer pick a distinct nickname per group
+//   the way they used to; a deliberate simplification, not an oversight.
+// - No last_active column at all — derived instead from that nickname's
+//   most recent web_group_scores row, which is more accurate than a
+//   manually-`.update()`-ed timestamp ever was anyway.
 
 import { supabase, todayStr } from './supabase'
 import { SITE_URL } from './share'
 import { ERAS } from './sports'
 
-const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no O/0/I/1 — avoids misreads
-const CODE_LENGTH = 4
 const MAX_MEMBERS = 20
 const MAX_GROUPS_PER_USER = 3
 const MAX_GROUPS_CREATED = 3
 const MAX_FAILED_JOINS_PER_HOUR = 5
 const LS_KEY = 'chirp-web:user'
+const LS_GROUPS_GUEST_ID_KEY = 'chirp-web:groups-guest-id'
 const LS_GUEST_CREATED_KEY = 'chirp-web:guest-groups-created' // soft, client-side only — guests have no server identity to enforce this against
 const LS_FAILED_JOINS_KEY = 'chirp-web:failed-joins'
 
@@ -129,15 +149,36 @@ function recordFailedJoin() {
 }
 
 // ── PIN hashing (Web Crypto — no dependency) ────────────────────────────────
-// Note: RLS grants public SELECT on web_group_members, so this hash is
-// readable by anyone in the group. Hashing stops a plaintext PIN showing up
-// in a network tab, but a 4-digit space (10,000 combos) is not a real secret
-// against someone willing to brute-force it offline — this is a nickname-
-// squatting deterrent for friends, not a security boundary.
+// Note: guest reads are a public RPC (see fetchGroupMembers below), so this
+// hash is readable by anyone in the group. Hashing stops a plaintext PIN
+// showing up in a network tab, but a 4-digit space (10,000 combos) is not a
+// real secret against someone willing to brute-force it offline — this is a
+// nickname-squatting deterrent for friends, not a security boundary.
 async function hashPin(pin) {
   const data = new TextEncoder().encode(`chirp-sports-guest-pin:${pin}`)
   const digest = await crypto.subtle.digest('SHA-256', data)
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// ── Groups guest identity (per-browser, stable) ─────────────────────────────
+// Deliberately separate from leaderboardIdentity.js's guestId — that file's
+// own header explains why (asked for once, unrelated to whether someone
+// ever touches Groups). Generated once, reused for every create/join call
+// so the app's guest RPCs recognize a returning guest across visits.
+function getGroupsGuestId() {
+  try {
+    const existing = localStorage.getItem(LS_GROUPS_GUEST_ID_KEY)
+    if (existing) return existing
+  } catch {
+    /* fall through to generating a fresh one */
+  }
+  const fresh = crypto.randomUUID()
+  try {
+    localStorage.setItem(LS_GROUPS_GUEST_ID_KEY, fresh)
+  } catch {
+    /* localStorage unavailable — identity just won't persist across visits */
+  }
+  return fresh
 }
 
 // ── Local storage (per-browser identity) ────────────────────────────────────
@@ -240,12 +281,8 @@ export function onAuthChange(callback) {
 }
 
 // ── Codes / links ────────────────────────────────────────────────────────────
-
-function randomCode() {
-  let out = ''
-  for (let i = 0; i < CODE_LENGTH; i++) out += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
-  return out
-}
+// generateUniqueCode() is gone — create_leaderboard_group generates a
+// unique invite_code server-side now, no client-side collision check needed.
 
 /** Accepts "4829", "CHIRP-4829", "chirp-4829", or a pasted full invite link. */
 export function normalizeCode(input) {
@@ -258,7 +295,7 @@ export function normalizeCode(input) {
 }
 
 export function displayCode(code) {
-  return `CHIRP-${code}`
+  return `CHIRP-${code?.toUpperCase?.() ?? code}`
 }
 
 export function inviteLink(code) {
@@ -281,13 +318,10 @@ export function twitterShareUrl(text) {
 
 // ── Create / join ────────────────────────────────────────────────────────────
 
-async function generateUniqueCode() {
-  for (let attempt = 0; attempt < 8; attempt++) {
-    const code = randomCode()
-    const { data } = await supabase.from('web_groups').select('id').eq('group_code', code).maybeSingle()
-    if (!data) return code
-  }
-  throw new Error('Could not generate a unique group code — try again')
+/** Public preview by invite code, no membership required — same RPC the Flutter app uses for its own "you're about to join X" screen. Returns { id, name, photo_url, member_count } or null. */
+export async function previewGroupByCode(code) {
+  const { data } = await supabase.rpc('preview_leaderboard_group_by_code', { p_invite_code: code })
+  return Array.isArray(data) && data.length ? data[0] : null
 }
 
 /**
@@ -302,40 +336,28 @@ export async function createGroup({ groupName, nickname, isPublic = false, ident
 
   if (identity.type === 'google') {
     const { count } = await supabase
-      .from('web_groups')
+      .from('leaderboard_groups')
       .select('id', { count: 'exact', head: true })
       .eq('created_by', identity.userId)
-    if ((count || 0) >= MAX_GROUPS_CREATED) throw new Error(`You've already created ${MAX_GROUPS_CREATED} groups — leave or delete one first`)
+    if ((count || 0) >= MAX_GROUPS_CREATED) {
+      throw new Error(`You've already created ${MAX_GROUPS_CREATED} groups — leave or delete one first`)
+    }
   } else if (guestGroupsCreatedCount() >= MAX_GROUPS_CREATED) {
     throw new Error(`You've already created ${MAX_GROUPS_CREATED} groups on this device — leave or delete one first`)
   }
 
-  const code = await generateUniqueCode()
-  const { data: group, error } = await supabase
-    .from('web_groups')
-    .insert({
-      group_code: code,
-      group_name: cleanName,
-      is_public: isPublic,
-      created_by: identity.type === 'google' ? identity.userId : null,
-    })
-    .select()
-    .single()
-  if (error) throw error
-
-  const memberRow = {
-    group_id: group.id,
-    nickname: cleanNickname,
-    is_guest: identity.type === 'guest',
-    user_id: identity.type === 'google' ? identity.userId : null,
-    pin_hash: identity.type === 'guest' ? await hashPin(identity.pin) : null,
+  const params = { p_name: cleanName, p_photo_url: null, p_is_public: isPublic }
+  if (identity.type === 'guest') {
+    params.p_guest_id = getGroupsGuestId()
+    params.p_guest_nickname = cleanNickname
+    params.p_guest_pin_hash = await hashPin(identity.pin)
   }
-  const { error: memberErr } = await supabase.from('web_group_members').insert(memberRow)
-  if (memberErr) throw memberErr
+  const { data: group, error } = await supabase.rpc('create_leaderboard_group', params)
+  if (error) throw error
 
   if (identity.type === 'guest') bumpGuestGroupsCreated()
 
-  return { id: group.id, code: group.group_code, name: group.group_name }
+  return { id: group.id, code: group.invite_code, name: group.name }
 }
 
 /**
@@ -349,116 +371,90 @@ export async function joinGroup({ code, nickname, identity }) {
   }
 
   const clean = normalizeCode(code)
-  const { data: group, error } = await supabase.from('web_groups').select('*').eq('group_code', clean).maybeSingle()
-  if (error || !group) {
-    recordFailedJoin()
-    throw new Error("That group code doesn't exist")
-  }
-
   const trimmedNickname = sanitizeNickname(nickname)
   if (!trimmedNickname) throw new Error('Enter a nickname')
-  const { data: existing } = await supabase
-    .from('web_group_members')
-    .select('*')
-    .eq('group_id', group.id)
-    .eq('nickname', trimmedNickname)
-    .maybeSingle()
 
-  if (existing) {
-    if (identity.type === 'google' && existing.user_id === identity.userId) {
-      await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
-      return { id: group.id, code: group.group_code, name: group.group_name }
+  const params = { p_invite_code: clean }
+  if (identity.type === 'guest') {
+    params.p_guest_id = getGroupsGuestId()
+    params.p_guest_nickname = trimmedNickname
+    params.p_guest_pin_hash = await hashPin(identity.pin)
+  }
+
+  const { data: groupId, error } = await supabase.rpc('join_leaderboard_group_by_code', params)
+  if (error) {
+    if (error.message?.includes('NICKNAME_TAKEN')) {
+      recordFailedJoin()
+      throw new NicknameTakenError(trimmedNickname, true)
     }
-    if (identity.type === 'guest' && existing.is_guest) {
-      const givenHash = await hashPin(identity.pin)
-      if (givenHash !== existing.pin_hash) {
-        recordFailedJoin()
-        throw new NicknameTakenError(trimmedNickname, true)
-      }
-      await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', existing.id)
-      return { id: group.id, code: group.group_code, name: group.group_name }
+    if (error.message?.includes('Invalid invite code')) {
+      recordFailedJoin()
+      throw new Error("That group code doesn't exist")
     }
-    // Belongs to someone else entirely (different Google account, or a guest
-    // and this join is Google, or vice versa) — no PIN can resolve that.
-    recordFailedJoin()
-    throw new NicknameTakenError(trimmedNickname, identity.type === 'guest' && existing.is_guest)
+    throw error
   }
 
-  const { count } = await supabase
-    .from('web_group_members')
-    .select('id', { count: 'exact', head: true })
-    .eq('group_id', group.id)
-  if ((count || 0) >= (group.max_members || MAX_MEMBERS)) {
-    throw new Error(`${group.group_name} is full (${group.max_members || MAX_MEMBERS} members max)`)
-  }
-
-  const memberRow = {
-    group_id: group.id,
-    nickname: trimmedNickname,
-    is_guest: identity.type === 'guest',
-    user_id: identity.type === 'google' ? identity.userId : null,
-    pin_hash: identity.type === 'guest' ? await hashPin(identity.pin) : null,
-  }
-  const { error: insertErr } = await supabase.from('web_group_members').insert(memberRow)
-  if (insertErr) throw insertErr
-
-  return { id: group.id, code: group.group_code, name: group.group_name }
+  // Read the group back via the public preview RPC rather than a direct
+  // table SELECT — leaderboard_groups' own SELECT policy is gated on
+  // auth.uid() membership, which a guest session (no auth.uid() at all)
+  // can never satisfy, so a direct read here would silently come back
+  // empty for every guest join.
+  const group = await previewGroupByCode(clean)
+  return { id: groupId, code: clean, name: group?.name ?? '' }
 }
 
 /** Re-verifies a guest's cached PIN against the server — used for the "welcome back" confirm screen. */
 export async function verifyGuestPin({ groupId, nickname, pin }) {
-  const { data: member } = await supabase
-    .from('web_group_members')
-    .select('id, pin_hash')
-    .eq('group_id', groupId)
-    .eq('nickname', nickname)
-    .maybeSingle()
+  // Reads the guest RPC directly (not fetchGroupMembers' normalized shape,
+  // below) since pin_hash isn't part of that shape and doesn't need to be —
+  // this is the one place it's actually checked.
+  const { data } = await supabase.rpc('get_leaderboard_group_members_for_guest', { p_group_id: groupId })
+  const member = (data || []).find((m) => m.is_guest && m.nickname === nickname)
   if (!member) return false
   const givenHash = await hashPin(pin)
   return givenHash === member.pin_hash
 }
 
 export async function leaveGroup({ groupId, nickname }) {
-  const { data: member } = await supabase
-    .from('web_group_members')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('nickname', nickname)
-    .maybeSingle()
-  if (member) {
-    await supabase.from('web_group_members').delete().eq('id', member.id)
+  const { data: sessionData } = await supabase.auth.getSession()
+  const userId = sessionData.session?.user?.id
+
+  // The DELETE policy's guest branch is deliberately open (`is_guest = true`,
+  // app-level trust only — see leaderboard_groups_guest.sql), but the authed
+  // branch is real (`user_id = auth.uid()`) — a Google member has no
+  // `nickname` column to match on at all, so this has to branch on identity
+  // rather than filtering by nickname for both.
+  if (userId) {
+    await supabase.from('leaderboard_group_members').delete().eq('group_id', groupId).eq('user_id', userId)
+  } else {
+    await supabase
+      .from('leaderboard_group_members')
+      .delete()
+      .eq('group_id', groupId)
+      .eq('nickname', nickname)
+      .eq('is_guest', true)
   }
 
   // If that was the last member, clean up the now-empty group instead of
-  // leaving a ghost row behind — no "ownership" concept exists anywhere else
-  // in this app, so there's nothing to transfer regardless of who left.
-  const { count } = await supabase.from('web_group_members').select('id', { count: 'exact', head: true }).eq('group_id', groupId)
-  if ((count || 0) === 0) {
-    await supabase.from('web_groups').delete().eq('id', groupId)
+  // leaving a ghost row behind. Counted via the guest RPC (SECURITY DEFINER,
+  // bypasses the membership-gated SELECT policy) so this works regardless of
+  // who's leaving.
+  const { data: remaining } = await supabase.rpc('get_leaderboard_group_members_for_guest', { p_group_id: groupId })
+  if ((remaining || []).length === 0) {
+    await supabase.from('leaderboard_groups').delete().eq('id', groupId)
   }
 }
 
 export async function fetchPublicGroups(limit = 20) {
-  const { data } = await supabase
-    .from('web_groups')
-    .select('id, group_code, group_name, created_at')
-    .eq('is_public', true)
-    .order('created_at', { ascending: false })
-    .limit(limit)
-  if (!data) return []
-  const withCounts = await Promise.all(
-    data.map(async (g) => {
-      const { count } = await supabase.from('web_group_members').select('id', { count: 'exact', head: true }).eq('group_id', g.id)
-      return { ...g, memberCount: count || 0 }
-    })
-  )
-  return withCounts
-}
-
-export async function fetchGroupsByIds(ids) {
-  if (!ids || ids.length === 0) return []
-  const { data } = await supabase.from('web_groups').select('id, group_code, group_name').in('id', ids)
-  return (data || []).map((g) => ({ id: g.id, code: g.group_code, name: g.group_name }))
+  const { data, error } = await supabase.rpc('fetch_public_leaderboard_groups', { p_limit: limit })
+  if (error) throw error
+  return (data || []).map((g) => ({
+    id: g.id,
+    group_code: g.invite_code,
+    group_name: g.name,
+    created_at: g.created_at,
+    memberCount: Number(g.member_count) || 0,
+  }))
 }
 
 // ── Members / streaks ────────────────────────────────────────────────────────
@@ -470,7 +466,7 @@ function daysAgo(dateStr) {
   return Math.round(diffMs / 86400000)
 }
 
-/** 🟢 active today, 🟡 active yesterday, ⚫ older. */
+/** 🟢 active today, 🟡 active yesterday, ⚫ older/never. */
 export function memberStatus(lastActive) {
   if (!lastActive) return { dot: '⚫', label: 'Not active yet' }
   const diff = daysAgo(lastActive)
@@ -503,36 +499,89 @@ export async function computeStreak(groupId, nickname) {
   return streak
 }
 
-export async function fetchGroupMembers(groupId) {
-  const { data, error } = await supabase
-    .from('web_group_members')
-    .select('id, nickname, is_guest, user_id, last_active, joined_at')
+/** Most recent game_date this nickname submitted a score in this group — stands in for the old last_active column, which leaderboard_group_members doesn't have. */
+async function lastActiveFor(groupId, nickname) {
+  const { data } = await supabase
+    .from('web_group_scores')
+    .select('game_date')
     .eq('group_id', groupId)
-    .order('joined_at')
-  if (error) throw error
-  if (!data) return []
-  return Promise.all(
-    data.map(async (m) => ({
-      ...m,
-      status: memberStatus(m.last_active),
-      streak: await computeStreak(groupId, m.nickname),
+    .eq('nickname', nickname)
+    .order('game_date', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  return data?.game_date ?? null
+}
+
+/** A member row's display identity: a guest's own stored nickname, or a Google member's profile name (see the header note on why authed rows carry no per-group nickname). */
+function memberNickname(m) {
+  return m.is_guest ? m.nickname : m.display_name || m.username || 'Player'
+}
+
+export async function fetchGroupMembers(groupId, { asGuest = false } = {}) {
+  let rows
+  if (asGuest) {
+    const { data, error } = await supabase.rpc('get_leaderboard_group_members_for_guest', { p_group_id: groupId })
+    if (error) throw error
+    rows = data || []
+  } else {
+    const { data, error } = await supabase
+      .from('leaderboard_group_members')
+      .select('id, user_id, guest_id, nickname, is_guest, joined_at')
+      .eq('group_id', groupId)
+      .order('joined_at')
+    if (error) throw error
+    rows = data || []
+
+    // leaderboard_group_members.user_id references auth.users, not profiles
+    // directly — PostgREST can't auto-embed profiles(...) across that gap
+    // (no FK between the two tables it's actually joining), so this is a
+    // separate batch fetch rather than a nested select.
+    const userIds = rows.filter((m) => m.user_id).map((m) => m.user_id)
+    let profileById = {}
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase.from('profiles').select('id, username, display_name').in('id', userIds)
+      profileById = Object.fromEntries((profiles || []).map((p) => [p.id, p]))
+    }
+    rows = rows.map((m) => ({
+      member_id: m.id,
+      user_id: m.user_id,
+      guest_id: m.guest_id,
+      nickname: m.nickname,
+      is_guest: m.is_guest,
+      joined_at: m.joined_at,
+      username: profileById[m.user_id]?.username ?? null,
+      display_name: profileById[m.user_id]?.display_name ?? null,
     }))
+  }
+
+  return Promise.all(
+    rows.map(async (m) => {
+      const nickname = memberNickname(m)
+      const [status, streak] = await Promise.all([
+        lastActiveFor(groupId, nickname).then(memberStatus),
+        computeStreak(groupId, nickname),
+      ])
+      return {
+        id: m.member_id,
+        nickname,
+        is_guest: m.is_guest,
+        user_id: m.user_id,
+        joined_at: m.joined_at,
+        status,
+        streak,
+      }
+    })
   )
 }
 
 // ── Scores ───────────────────────────────────────────────────────────────────
+// web_group_scores itself — table, columns, submit/fetch shape — is
+// completely unchanged from before this migration.
 
 export async function submitGroupScore({ groupId, nickname, gameType, sport, era, score, details }) {
-  const { data: member } = await supabase
-    .from('web_group_members')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('nickname', nickname)
-    .maybeSingle()
-
   const row = {
     group_id: groupId,
-    member_id: member?.id ?? null,
+    member_id: null,
     nickname,
     game_type: gameType,
     sport,
@@ -545,8 +594,6 @@ export async function submitGroupScore({ groupId, nickname, gameType, sport, era
     .from('web_group_scores')
     .upsert(row, { onConflict: 'group_id,nickname,game_type,sport,game_date,era' })
   if (error) throw error
-
-  if (member) await supabase.from('web_group_members').update({ last_active: new Date().toISOString() }).eq('id', member.id)
   return row
 }
 
@@ -562,13 +609,19 @@ export function eraLabel(sport, eraKey) {
  * row counts, with that row's era shown as the badge.
  */
 export async function fetchGroupLeaderboard({ groupId, sport, gameDate = todayStr() }) {
-  const [{ data: scores, error: scoresErr }, { data: members, error: membersErr }] = await Promise.all([
+  const [{ data: scores, error: scoresErr }, { data: rosterRows, error: rosterErr }] = await Promise.all([
     supabase.from('web_group_scores').select('*').eq('group_id', groupId).eq('sport', sport).eq('game_date', gameDate),
-    supabase.from('web_group_members').select('nickname').eq('group_id', groupId),
+    // Roster read through the guest RPC (SECURITY DEFINER, open on group_id
+    // alone) rather than a direct table read or a required `members` param —
+    // it works the same whether the caller is a guest or Google session, and
+    // callers (GroupScoreBanner especially) shouldn't need to have already
+    // loaded the full member list just to show a leaderboard.
+    supabase.rpc('get_leaderboard_group_members_for_guest', { p_group_id: groupId }),
   ])
-  if (scoresErr || membersErr) throw scoresErr || membersErr
+  if (scoresErr) throw scoresErr
+  if (rosterErr) throw rosterErr
 
-  const allNicknames = [...new Set((members || []).map((m) => m.nickname))]
+  const allNicknames = [...new Set((rosterRows || []).map(memberNickname))]
   const byGame = {}
   for (const gameType of GAME_ORDER) {
     const rowsForGame = (scores || []).filter((s) => s.game_type === gameType)

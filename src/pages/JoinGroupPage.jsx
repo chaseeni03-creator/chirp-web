@@ -3,8 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import Seo from '../components/Seo'
 import GroupOnboarding from '../components/GroupOnboarding'
 import { useGroup } from '../context/GroupContext'
-import { normalizeCode, displayCode } from '../lib/groups'
-import { supabase } from '../lib/supabase'
+import { normalizeCode, displayCode, previewGroupByCode } from '../lib/groups'
 
 export default function JoinGroupPage() {
   const { code: rawCode } = useParams()
@@ -21,16 +20,11 @@ export default function JoinGroupPage() {
       return
     }
     let cancelled = false
-    supabase
-      .from('web_groups')
-      .select('group_name, group_code')
-      .eq('group_code', code)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return
-        if (data) setGroupInfo(data)
-        else setNotFound(true)
-      })
+    previewGroupByCode(code).then((data) => {
+      if (cancelled) return
+      if (data) setGroupInfo(data)
+      else setNotFound(true)
+    })
     return () => {
       cancelled = true
     }
@@ -53,9 +47,9 @@ export default function JoinGroupPage() {
 
   return (
     <div className="mx-auto max-w-sm">
-      <Seo title={`Join ${groupInfo.group_name}`} />
+      <Seo title={`Join ${groupInfo.name}`} />
       <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">
-        Joining <span className="font-bold text-[var(--color-text)]">{groupInfo.group_name}</span> · {displayCode(groupInfo.group_code)}
+        Joining <span className="font-bold text-[var(--color-text)]">{groupInfo.name}</span> · {displayCode(code)}
       </p>
       <GroupOnboarding prefillCode={code} onDone={() => navigate('/groups')} />
     </div>
