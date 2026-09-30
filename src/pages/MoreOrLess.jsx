@@ -113,7 +113,7 @@ export default function MoreOrLess() {
       nextBestStreak = Math.max(bestStreak, nextStreak)
       nextCorrect = correctAnswers + 1
       nextScore += pointsForStreak(nextStreak)
-      if (nextStreak % 10 === 0) nextLives = Math.min(MAX_LIVES, lives + 1)
+      if (nextStreak % 5 === 0) nextLives = Math.min(MAX_LIVES, lives + 1)
     } else {
       nextLives = lives - 1
       nextStreak = 0
