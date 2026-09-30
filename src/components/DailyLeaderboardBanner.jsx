@@ -10,6 +10,23 @@ import { todayStr } from '../lib/supabase'
 const MEDAL = { 1: '👑', 2: '🥈', 3: '🥉' }
 const ALL_GAME_LABELS = { ...GAME_LABELS, ...CROSS_SPORT_GAME_LABELS }
 
+const NICKNAME_ADJECTIVES = [
+  'Blazing', 'Clutch', 'Iron', 'Golden', 'Swift', 'Mighty', 'Rowdy', 'Fierce',
+  'Sneaky', 'Turbo', 'Prime', 'Wild', 'Elite', 'Savage', 'Lucky', 'Rapid',
+  'Bold', 'Silent', 'Electric', 'Cosmic',
+]
+const NICKNAME_NOUNS = [
+  'Blitz', 'Slugger', 'Hustler', 'Baller', 'Striker', 'Ace', 'Cannon', 'Hawk',
+  'Rocket', 'Titan', 'Maverick', 'Legend', 'Rebel', 'Comet', 'Tornado',
+  'Falcon', 'Bandit', 'Champ', 'Sniper', 'Cleat',
+]
+
+function generateNickname() {
+  const adjective = NICKNAME_ADJECTIVES[Math.floor(Math.random() * NICKNAME_ADJECTIVES.length)]
+  const noun = NICKNAME_NOUNS[Math.floor(Math.random() * NICKNAME_NOUNS.length)]
+  return `${adjective} ${noun}`
+}
+
 /**
  * Submits today's score to the GLOBAL leaderboard on mount and shows a
  * "you ranked #N" banner — unlike GroupScoreBanner (which this is modeled
@@ -77,31 +94,50 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
 
   if (state === 'idle' || state === 'error') return null
 
+  // A one-time gate, not an inline form — this is the first (and only) time
+  // anyone is asked, on any game, across the whole site (leaderboardIdentity.js
+  // is shared, not per-game). Deliberately no skip/dismiss: submitting to the
+  // leaderboard has always required a nickname (this only changes how it's
+  // asked for), and until one's set this reappears after every game exactly
+  // as the plain inline version it replaces did.
   if (state === 'needs-nickname') {
     return (
-      <form
-        onSubmit={handleNicknameSubmit}
-        className="mt-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-3"
-      >
-        <p className="mb-2 text-sm font-bold">What should we call you on the leaderboard?</p>
-        <div className="flex gap-2">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+        <form
+          onSubmit={handleNicknameSubmit}
+          className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+        >
+          <p className="text-lg font-extrabold">What should we call you on the leaderboard? 🏆</p>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Pick a nickname — you'll only be asked once, and it's used on every leaderboard from here on.
+          </p>
+
           <input
             autoFocus
             value={nicknameInput}
             onChange={(e) => setNicknameInput(e.target.value)}
             maxLength={20}
             placeholder="Nickname"
-            className="min-w-0 flex-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+            className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
           />
+
+          <button
+            type="button"
+            onClick={() => setNicknameInput(generateNickname())}
+            className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-2 text-xs font-bold text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
+          >
+            🎲 Suggest a name for me
+          </button>
+
           <button
             type="submit"
             disabled={!nicknameInput.trim()}
-            className="shrink-0 rounded-lg bg-[var(--color-primary)] px-4 py-2 text-sm font-bold text-white disabled:opacity-40"
+            className="mt-4 w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white disabled:opacity-40"
           >
-            Submit Score
+            Confirm
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     )
   }
 
