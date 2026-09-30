@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Seo from '../components/Seo'
 import GameCard from '../components/GameCard'
+import HeroGame from '../components/HeroGame'
 import PlayWithFriendsModal from '../components/PlayWithFriendsModal'
 import { games } from '../data/games'
 import { getTodayResult } from '../lib/storage'
@@ -60,6 +61,8 @@ export default function Home() {
         title={meta.gamesTitle}
         description={`Free daily ${meta.label} games: Chirp Guess, Stat Line, Career Builder, The Progression, More vs Less, and The Lineup.`}
       />
+
+      <HeroGame />
 
       <div className="mb-6 text-center sm:mb-8">
         <div className="mb-2 flex items-center justify-center gap-1.5 text-2xl font-black tracking-tight sm:text-3xl">

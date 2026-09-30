@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useGroup } from '../context/GroupContext'
 import { GAME_LABELS, CROSS_SPORT_GAME_LABELS, sanitizeNickname } from '../lib/groups'
 import { getLeaderboardIdentity, setLeaderboardNickname } from '../lib/leaderboardIdentity'
-import { submitDailyScore, fetchMyRank } from '../lib/dailyLeaderboard'
+import { submitDailyScore, fetchMyRank, fetchDailyLeaderboardTop } from '../lib/dailyLeaderboard'
 import { buildLeaderboardShareText, copyToClipboard, SITE_URL } from '../lib/share'
 import { todayStr } from '../lib/supabase'
 
@@ -40,6 +40,7 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   const [nicknameInput, setNicknameInput] = useState('')
   const [state, setState] = useState('idle') // idle | needs-nickname | submitting | done | error
   const [result, setResult] = useState(null) // { rank, totalPlayers }
+  const [top10, setTop10] = useState(null)
   const [copied, setCopied] = useState(false)
   const ran = useRef(false)
 
@@ -60,8 +61,12 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
     setState('submitting')
     try {
       await submitDailyScore({ gameType, sport, nickname, score, userId, era, difficulty })
-      const mine = await fetchMyRank({ gameType, sport, userId })
+      const [mine, top] = await Promise.all([
+        fetchMyRank({ gameType, sport, userId }),
+        fetchDailyLeaderboardTop({ gameType, sport, limit: 10 }),
+      ])
       setResult(mine)
+      setTop10(top)
       setState('done')
     } catch (err) {
       console.error('Daily leaderboard submit failed:', err)
@@ -172,6 +177,38 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
               View full leaderboard →
             </Link>
           </div>
+
+          {top10 && top10.length > 0 && (
+            <div className="mt-4 border-t border-[var(--color-primary)]/20 pt-3">
+              <p className="mb-2 text-xs font-bold tracking-wide text-[var(--color-text-secondary)]">
+                TODAY'S TOP {top10.length}
+              </p>
+              <div className="space-y-1">
+                {top10.map((row, i) => {
+                  const isMe = row.nickname === identity.nickname
+                  return (
+                    <div
+                      key={`${row.nickname}-${i}`}
+                      className={`flex items-center justify-between rounded-lg px-2 py-1 text-sm ${
+                        isMe ? 'bg-[var(--color-primary)]/15 font-bold' : ''
+                      }`}
+                    >
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="w-6 shrink-0 text-center text-xs text-[var(--color-text-secondary)]">
+                          {MEDAL[row.rank] ?? row.rank}
+                        </span>
+                        <span className="truncate">
+                          {row.nickname}
+                          {isMe && <span className="ml-1 text-[var(--color-primary)]">(you)</span>}
+                        </span>
+                      </span>
+                      <span className="shrink-0 tabular-nums">{row.score.toLocaleString()}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <p className="font-semibold text-[var(--color-text-secondary)]">
