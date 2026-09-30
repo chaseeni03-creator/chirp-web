@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGroup } from '../context/GroupContext'
 import { GAME_LABELS, CROSS_SPORT_GAME_LABELS, sanitizeNickname } from '../lib/groups'
-import { getLeaderboardIdentity, setLeaderboardNickname } from '../lib/leaderboardIdentity'
+import {
+  getLeaderboardIdentity, claimNickname, loginWithNickname, checkNicknameAvailable, NicknameTakenError,
+} from '../lib/leaderboardIdentity'
 import { submitDailyScore, fetchMyRank, fetchDailyLeaderboardTop } from '../lib/dailyLeaderboard'
 import { buildLeaderboardShareText, copyToClipboard, SITE_URL } from '../lib/share'
 import { todayStr } from '../lib/supabase'
@@ -21,10 +23,19 @@ const NICKNAME_NOUNS = [
   'Falcon', 'Bandit', 'Champ', 'Sniper', 'Cleat',
 ]
 
-function generateNickname() {
+function randomCombo() {
   const adjective = NICKNAME_ADJECTIVES[Math.floor(Math.random() * NICKNAME_ADJECTIVES.length)]
   const noun = NICKNAME_NOUNS[Math.floor(Math.random() * NICKNAME_NOUNS.length)]
   return `${adjective} ${noun}`
+}
+
+/** Skips a suggestion someone's already claimed — tries a handful of fresh combos first (400 possible, collisions should be rare), then falls back to a numbered variant so the button never just fails. */
+async function generateNickname() {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const candidate = randomCombo()
+    if (await checkNicknameAvailable(candidate)) return candidate
+  }
+  return `${randomCombo()} ${Math.floor(10 + Math.random() * 90)}`
 }
 
 /**
@@ -38,6 +49,12 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   const { googleSession } = useGroup()
   const [identity, setIdentity] = useState(getLeaderboardIdentity)
   const [nicknameInput, setNicknameInput] = useState('')
+  const [pinInput, setPinInput] = useState('')
+  const [mode, setMode] = useState('claim') // claim | login — which form the needs-nickname modal shows
+  const [nicknameTaken, setNicknameTaken] = useState(false)
+  const [identityBusy, setIdentityBusy] = useState(false)
+  const [identityError, setIdentityError] = useState(null)
+  const [generating, setGenerating] = useState(false)
   const [state, setState] = useState('idle') // idle | needs-nickname | submitting | done | error
   const [result, setResult] = useState(null) // { rank, totalPlayers }
   const [top10, setTop10] = useState(null)
@@ -74,13 +91,49 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
     }
   }
 
-  function handleNicknameSubmit(e) {
+  async function handleGenerateClick() {
+    setGenerating(true)
+    try {
+      setNicknameInput(await generateNickname())
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleClaimSubmit(e) {
     e.preventDefault()
     const clean = sanitizeNickname(nicknameInput)
-    if (!clean) return
-    const next = setLeaderboardNickname(clean)
-    setIdentity(next)
-    submit(clean)
+    if (!clean || !/^\d{4}$/.test(pinInput)) return
+    setIdentityBusy(true)
+    setIdentityError(null)
+    setNicknameTaken(false)
+    try {
+      const next = await claimNickname(clean, pinInput)
+      setIdentity(next)
+      submit(clean)
+    } catch (err) {
+      if (err instanceof NicknameTakenError) setNicknameTaken(true)
+      else setIdentityError(err.message || "Couldn't save that nickname")
+    } finally {
+      setIdentityBusy(false)
+    }
+  }
+
+  async function handleLoginSubmit(e) {
+    e.preventDefault()
+    const clean = sanitizeNickname(nicknameInput)
+    if (!clean || !/^\d{4}$/.test(pinInput)) return
+    setIdentityBusy(true)
+    setIdentityError(null)
+    try {
+      const next = await loginWithNickname(clean, pinInput)
+      setIdentity(next)
+      submit(next.nickname)
+    } catch (err) {
+      setIdentityError(err.message || "Couldn't log in")
+    } finally {
+      setIdentityBusy(false)
+    }
   }
 
   async function handleShare() {
@@ -106,40 +159,98 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   // asked for), and until one's set this reappears after every game exactly
   // as the plain inline version it replaces did.
   if (state === 'needs-nickname') {
+    const isLogin = mode === 'login'
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
         <form
-          onSubmit={handleNicknameSubmit}
+          onSubmit={isLogin ? handleLoginSubmit : handleClaimSubmit}
           className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
         >
-          <p className="text-lg font-extrabold">What should we call you on the leaderboard? 🏆</p>
-          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
-            Pick a nickname — you'll only be asked once, and it's used on every leaderboard from here on.
-          </p>
+          {isLogin ? (
+            <>
+              <p className="text-lg font-extrabold">Log in with your nickname 🏆</p>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Pick up your existing identity and score history on this browser.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-lg font-extrabold">What should we call you on the leaderboard? 🏆</p>
+              <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+                Pick a nickname and a 4-digit PIN — the PIN lets you log back in as the same identity on another
+                device, and it's used on every leaderboard from here on.
+              </p>
+            </>
+          )}
 
           <input
             autoFocus
             value={nicknameInput}
-            onChange={(e) => setNicknameInput(e.target.value)}
+            onChange={(e) => {
+              setNicknameInput(e.target.value)
+              setNicknameTaken(false)
+            }}
             maxLength={20}
             placeholder="Nickname"
             className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-sm outline-none focus:border-[var(--color-primary)]"
           />
 
-          <button
-            type="button"
-            onClick={() => setNicknameInput(generateNickname())}
-            className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-2 text-xs font-bold text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-          >
-            🎲 Suggest a name for me
-          </button>
+          {!isLogin && (
+            <button
+              type="button"
+              onClick={handleGenerateClick}
+              disabled={generating}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-2 text-xs font-bold text-[var(--color-text-secondary)] hover:text-[var(--color-text)] disabled:opacity-60"
+            >
+              {generating ? 'Thinking…' : '🎲 Suggest a name for me'}
+            </button>
+          )}
+
+          <input
+            type="text"
+            inputMode="numeric"
+            value={pinInput}
+            onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+            maxLength={4}
+            placeholder="PIN (4 digits)"
+            className="mt-2 w-28 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2.5 text-center text-sm tracking-widest outline-none focus:border-[var(--color-primary)]"
+          />
+
+          {nicknameTaken && (
+            <div className="mt-3 rounded-xl border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 p-3 text-xs">
+              <p>{nicknameInput} is already taken.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login')
+                  setNicknameTaken(false)
+                }}
+                className="mt-1 font-bold text-[var(--color-primary)] underline"
+              >
+                Is it yours? Log in with its PIN instead →
+              </button>
+            </div>
+          )}
+          {identityError && <p className="mt-3 text-xs text-[var(--color-primary)]">{identityError}</p>}
 
           <button
             type="submit"
-            disabled={!nicknameInput.trim()}
+            disabled={!nicknameInput.trim() || pinInput.length !== 4 || identityBusy}
             className="mt-4 w-full rounded-xl bg-[var(--color-primary)] py-3 text-sm font-bold text-white disabled:opacity-40"
           >
-            Confirm
+            {identityBusy ? '…' : isLogin ? 'Log In' : 'Confirm'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setMode(isLogin ? 'claim' : 'login')
+              setNicknameTaken(false)
+              setIdentityError(null)
+            }}
+            className="mt-3 w-full text-center text-xs text-[var(--color-text-tertiary)] underline"
+          >
+            {isLogin ? "Don't have a nickname yet? Pick one" : 'Already have a nickname? Log in instead'}
           </button>
         </form>
       </div>

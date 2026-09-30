@@ -30,6 +30,7 @@
 import { supabase, todayStr } from './supabase'
 import { SITE_URL } from './share'
 import { ERAS } from './sports'
+import { hashPin } from './pin'
 
 const MAX_MEMBERS = 20
 const MAX_GROUPS_PER_USER = 3
@@ -146,18 +147,6 @@ function recordFailedJoin() {
   } catch {
     /* ignore */
   }
-}
-
-// ── PIN hashing (Web Crypto — no dependency) ────────────────────────────────
-// Note: guest reads are a public RPC (see fetchGroupMembers below), so this
-// hash is readable by anyone in the group. Hashing stops a plaintext PIN
-// showing up in a network tab, but a 4-digit space (10,000 combos) is not a
-// real secret against someone willing to brute-force it offline — this is a
-// nickname-squatting deterrent for friends, not a security boundary.
-async function hashPin(pin) {
-  const data = new TextEncoder().encode(`chirp-sports-guest-pin:${pin}`)
-  const digest = await crypto.subtle.digest('SHA-256', data)
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // ── Groups guest identity (per-browser, stable) ─────────────────────────────
