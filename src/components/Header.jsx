@@ -6,7 +6,14 @@ export default function Header() {
   return (
     <header className="border-b border-[var(--color-border)] bg-[var(--color-bg)]">
       <div className="mx-auto grid h-14 max-w-5xl grid-cols-[1fr_auto_1fr] items-center px-4">
-        <span aria-hidden="true" />
+        <div className="flex items-center justify-self-start gap-2 text-xs font-bold sm:gap-4 sm:text-sm">
+          <Link to="/leaderboard" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            🏆 <span className="hidden sm:inline">Leaderboard</span>
+          </Link>
+          <Link to="/badges" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            🏅 <span className="hidden sm:inline">Badges</span>
+          </Link>
+        </div>
         <Link to="/" className="flex items-center justify-self-center gap-1.5 font-extrabold tracking-tight">
           <span className="text-lg text-[var(--color-primary)]">Chirp</span>
           <img src="/bird-logo.png" alt="" className="h-6 w-6" />
@@ -15,12 +22,6 @@ export default function Header() {
         <div className="flex items-center justify-self-end gap-2 text-xs font-bold sm:gap-4 sm:text-sm">
           <Link to="/how-to-play" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             📖 <span className="hidden sm:inline">How to Play</span>
-          </Link>
-          <Link to="/leaderboard" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
-            🏆 <span className="hidden sm:inline">Leaderboard</span>
-          </Link>
-          <Link to="/badges" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
-            🏅 <span className="hidden sm:inline">Badges</span>
           </Link>
           <Link to="/groups" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             👥 <span className="hidden sm:inline">Groups</span>
