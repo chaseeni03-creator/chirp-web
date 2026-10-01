@@ -268,7 +268,11 @@ export default function MoreOrLess() {
           score={result.score}
           details={`${result.roundsPlayed} rounds`}
         />
-        <DailyLeaderboardBanner gameType="more-or-less" sport={sport} era={sport === 'nfl' ? era : mode} score={result.score} />
+        <DailyLeaderboardBanner
+          gameType="more-or-less" sport={sport} era={sport === 'nfl' ? era : mode} score={result.score}
+          isPerfect={result.roundsPlayed >= 15 && result.correctAnswers === result.roundsPlayed}
+          accuracy={result.roundsPlayed ? result.correctAnswers / result.roundsPlayed : null}
+        />
         <button onClick={() => setPhase('start')} className="mt-4 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 font-semibold">
           Play Again
         </button>

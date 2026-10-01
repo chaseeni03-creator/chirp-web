@@ -228,7 +228,10 @@ export default function Progression() {
           score={finished.finalScore}
           details={`Year ${finished.seasonsRevealed}`}
         />
-        <DailyLeaderboardBanner gameType="progression" sport={sport} era={era} score={finished.finalScore} />
+        <DailyLeaderboardBanner
+          gameType="progression" sport={sport} era={era} score={finished.finalScore}
+          isPerfect={finished.guessedCorrectly && finished.wrongGuesses === 0}
+        />
       </>
     )
   }

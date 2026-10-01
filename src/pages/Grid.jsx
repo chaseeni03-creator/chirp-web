@@ -111,7 +111,10 @@ export default function Grid() {
         <div className="mt-6">
           <ShareResult text={buildShareText('grid', today, finished)} />
           <GroupScoreBanner gameType="grid" sport={sport} era="all_time" score={finished.totalScore} details={`${finished.correctCount}/9 squares`} />
-          <DailyLeaderboardBanner gameType="grid" sport={sport} era="all_time" score={finished.totalScore} />
+          <DailyLeaderboardBanner
+            gameType="grid" sport={sport} era="all_time" score={finished.totalScore}
+            isPerfect={finished.correctCount === 9} accuracy={finished.correctCount / 9}
+          />
         </div>
       </GameShell>
     )

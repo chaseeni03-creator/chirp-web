@@ -179,7 +179,10 @@ export default function BeforeOrAfter() {
           {streak > 0 && <p className="mt-2 text-sm font-bold text-[var(--color-warning)]">🔥 {streak} day streak</p>}
         </div>
         <ShareResult text={buildShareText('before-or-after', today, finished)} />
-        <DailyLeaderboardBanner gameType="before-or-after" sport="all" score={finished.score} />
+        <DailyLeaderboardBanner
+          gameType="before-or-after" sport="all" score={finished.score}
+          isPerfect={finished.correctCount === TOTAL_QUESTIONS} accuracy={finished.correctCount / TOTAL_QUESTIONS}
+        />
         <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
           Come back tomorrow for 10 new questions!
         </p>

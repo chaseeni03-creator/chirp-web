@@ -301,7 +301,10 @@ export default function CareerBuilder() {
           score={finished.totalScore}
           details={`${finished.greenCount}/5 order`}
         />
-        <DailyLeaderboardBanner gameType="career-builder" sport={sport} era={era} score={finished.totalScore} />
+        <DailyLeaderboardBanner
+          gameType="career-builder" sport={sport} era={era} score={finished.totalScore}
+          isPerfect={finished.greenCount === 5} accuracy={finished.greenCount / 5}
+        />
       </>
     )
   }

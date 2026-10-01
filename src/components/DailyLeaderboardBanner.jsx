@@ -6,6 +6,8 @@ import {
   getLeaderboardIdentity, claimNickname, loginWithNickname, checkNicknameAvailable, NicknameTakenError,
 } from '../lib/leaderboardIdentity'
 import { submitDailyScore, fetchMyRank, fetchDailyLeaderboardTop } from '../lib/dailyLeaderboard'
+import { checkAndAwardBadges, fetchMyStreak } from '../lib/badges'
+import BadgePopup from './BadgePopup'
 import { buildLeaderboardShareText, copyToClipboard, SITE_URL } from '../lib/share'
 import { todayStr } from '../lib/supabase'
 
@@ -45,7 +47,7 @@ async function generateNickname() {
  * board. Guests are prompted for a nickname once (saved to localStorage via
  * leaderboardIdentity.js) before their first submission ever goes through.
  */
-export default function DailyLeaderboardBanner({ gameType, sport, era, difficulty, score }) {
+export default function DailyLeaderboardBanner({ gameType, sport, era, difficulty, score, isPerfect = false, accuracy = null }) {
   const { googleSession } = useGroup()
   const [identity, setIdentity] = useState(getLeaderboardIdentity)
   const [nicknameInput, setNicknameInput] = useState('')
@@ -59,6 +61,8 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   const [result, setResult] = useState(null) // { rank, totalPlayers }
   const [top10, setTop10] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [newBadges, setNewBadges] = useState([])
+  const [streak, setStreak] = useState(null)
   const ran = useRef(false)
 
   const userId = googleSession?.user?.id ?? null
@@ -85,6 +89,15 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
       setResult(mine)
       setTop10(top)
       setState('done')
+      // Badge/streak checks run after the score is already safely submitted
+      // and shown — a hiccup here (both fail open, see badges.js) should
+      // never block or delay the player seeing their actual rank.
+      const [badges, myStreak] = await Promise.all([
+        checkAndAwardBadges({ gameType, sport, isPerfect, accuracy, score, rank: mine?.rank ?? null, userId }),
+        fetchMyStreak(userId).catch(() => null),
+      ])
+      setNewBadges(badges)
+      setStreak(myStreak)
     } catch (err) {
       console.error('Daily leaderboard submit failed:', err)
       setState('error')
@@ -267,6 +280,15 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
 
   return (
     <div className="mt-4 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 p-3 text-sm">
+      <BadgePopup badges={newBadges} />
+      {streak && streak.current_streak > 0 && (
+        <div className="mb-2 flex items-center justify-center gap-4 rounded-lg bg-[var(--color-elevated)] py-2 text-xs font-bold">
+          <span>🔥 {streak.current_streak}-day streak</span>
+          {streak.longest_streak > streak.current_streak && (
+            <span className="text-[var(--color-text-tertiary)]">Best: {streak.longest_streak}</span>
+          )}
+        </div>
+      )}
       {result ? (
         <>
           <p className="font-bold">

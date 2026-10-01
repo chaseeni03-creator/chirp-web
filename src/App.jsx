@@ -12,6 +12,7 @@ import Lineup from './pages/Lineup'
 // import Grid from './pages/Grid' — hidden site-wide, see the /grid route below
 import BeforeOrAfter from './pages/BeforeOrAfter'
 import HowToPlay from './pages/HowToPlay'
+import Badges from './pages/Badges'
 import Leaderboard from './pages/Leaderboard'
 import Champions from './pages/Champions'
 import GroupPage from './pages/GroupPage'
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/grid" element={<Navigate to="/" replace />} />
               <Route path="/before-or-after" element={<BeforeOrAfter />} />
               <Route path="/how-to-play" element={<HowToPlay />} />
+              <Route path="/badges" element={<Badges />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/groups" element={<GroupPage />} />
               <Route path="/g/:code" element={<JoinGroupPage />} />

@@ -292,7 +292,10 @@ export default function StatLine() {
           score={finished.score}
           details={`${finished.cluesUsed}/${finished.maxClues} clues`}
         />
-        <DailyLeaderboardBanner gameType="stat-line" sport={sport} era={era} score={finished.score} />
+        <DailyLeaderboardBanner
+          gameType="stat-line" sport={sport} era={era} score={finished.score}
+          isPerfect={finished.won && finished.cluesUsed === 1}
+        />
       </>
     )
   }

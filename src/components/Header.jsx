@@ -19,6 +19,9 @@ export default function Header() {
           <Link to="/leaderboard" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             🏆 <span className="hidden sm:inline">Leaderboard</span>
           </Link>
+          <Link to="/badges" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
+            🏅 <span className="hidden sm:inline">Badges</span>
+          </Link>
           <Link to="/groups" className="text-[var(--color-text-secondary)] hover:text-[var(--color-text)]">
             👥 <span className="hidden sm:inline">Groups</span>
           </Link>

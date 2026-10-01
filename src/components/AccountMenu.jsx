@@ -6,6 +6,7 @@ import {
 } from '../lib/groups'
 import { getLeaderboardIdentity, setLeaderboardNickname } from '../lib/leaderboardIdentity'
 import { migrateGuestLeaderboardScores } from '../lib/dailyLeaderboard'
+import { migrateGuestBadgeData } from '../lib/badges'
 
 const PERSON_ICON_PATH =
   'M12 12.5c2.9 0 5.25-2.35 5.25-5.25S14.9 2 12 2 6.75 4.35 6.75 7.25 9.1 12.5 12 12.5zm0 2.25c-4.03 0-8.25 2.02-8.25 4.5V21h16.5v-1.75c0-2.48-4.22-4.5-8.25-4.5z'
@@ -48,6 +49,9 @@ export default function AccountMenu() {
     migratedRef.current = true
     migrateGuestLeaderboardScores(identity.guestId).catch((err) =>
       console.error('Guest leaderboard migration failed:', err)
+    )
+    migrateGuestBadgeData(identity.guestId).catch((err) =>
+      console.error('Guest badge data migration failed:', err)
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [googleSession])

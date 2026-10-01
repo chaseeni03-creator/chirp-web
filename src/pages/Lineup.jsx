@@ -150,7 +150,10 @@ export default function Lineup() {
         </div>
         <ShareResult text={buildShareText('lineup', today, finished)} />
         <GroupScoreBanner gameType="lineup" sport={sport} era="all_time" score={finished.totalScore} details={finished.scopeLabel} />
-        <DailyLeaderboardBanner gameType="lineup" sport={sport} era="all_time" score={finished.totalScore} />
+        <DailyLeaderboardBanner
+          gameType="lineup" sport={sport} era="all_time" score={finished.totalScore}
+          isPerfect={finished.bonuses.allFirst > 0}
+        />
 
         <div className="mt-6 space-y-4">
           {(sections || [{ key: null, label: null }]).map((sec) => (
