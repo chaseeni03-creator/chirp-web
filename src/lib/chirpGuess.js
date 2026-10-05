@@ -18,8 +18,8 @@ export const CHIRP_GUESS_FIELDS = {
 
 export const CHIRP_GUESS_HEADERS = {
   nfl: ['TEAM', 'CONF', 'DIV', '#', 'POS', 'HT', 'WT', 'AGE', 'RND', 'SCH'],
-  mlb: ['TEAM', 'POS', 'LG', 'DIV', 'ERA', 'BATS', 'HT', 'WT', 'CTY', 'AS'],
-  nba: ['TEAM', 'POS', 'CONF', 'DIV', 'ERA', 'RND', 'HT', 'WT', 'CTY'],
+  mlb: ['TEAM', 'POS', 'LG', 'DIV', 'BATS', 'HT', 'WT', 'AS'],
+  nba: ['TEAM', 'POS', 'CONF', 'DIV', 'RND', 'HT', 'WT'],
 }
 
 // ── Team tables (league/division/conference), ported from
@@ -216,18 +216,6 @@ function draftRoundTile(guessVal, mysteryVal) {
   return { label: 'RND', value: String(guessVal), color: numericColor(guessVal, mysteryVal, 1), arrow: arrowFor(guessVal, mysteryVal) }
 }
 
-/** "Era"/career-span tile: green if [seasonFirst, seasonLast] ranges overlap, orange if the gap is <=5 years. */
-function careerSpanTile(gf, gl, mf, ml) {
-  if (gf == null || gl == null || mf == null || ml == null) return { label: 'ERA', value: '?', color: 'grey', arrow: null }
-  const overlaps = gf <= ml && gl >= mf
-  const gap = gf > ml ? gf - ml : mf > gl ? mf - gl : 0
-  const color = overlaps ? 'green' : gap <= 5 ? 'orange' : 'grey'
-  let arrow = null
-  if (mf > gl) arrow = 'up'
-  if (ml < gf) arrow = 'down'
-  return { label: 'ERA', value: `${gf}-${gl}`, color, arrow }
-}
-
 // ── NFL ──────────────────────────────────────────────────────────────────
 
 const NFL_POSITION_GROUPS = {
@@ -363,11 +351,9 @@ export function compareMlb(g, m) {
       else color = 'grey'
       return { label: 'DIV', value: gTeam?.division ?? '?', color, arrow: null }
     })(),
-    careerSpanTile(g.season_first, g.season_last, m.season_first, m.season_last),
     exactTile('BATS', g.bats, m.bats),
     heightTile('HT', g.height, m.height),
     weightTile('WT', g.weight, m.weight, 0, 15),
-    exactTile('CTY', g.birth_country, m.birth_country),
     { label: 'AS', value: g.all_star_selections ?? '0', color: rangeColor(g.all_star_selections, m.all_star_selections, 2, 5), arrow: arrowFor(g.all_star_selections, m.all_star_selections) },
   ]
 }
@@ -427,11 +413,9 @@ export function compareNba(g, m) {
       else color = 'grey'
       return { label: 'DIV', value: gTeam?.division ?? '?', color, arrow: null }
     })(),
-    careerSpanTile(g.season_first, g.season_last, m.season_first, m.season_last),
     draftRoundTile(g.draft_round, m.draft_round),
     heightTile('HT', g.height, m.height),
     weightTile('WT', g.weight, m.weight, 0, 15),
-    exactTile('CTY', g.birth_country, m.birth_country),
   ]
 }
 
