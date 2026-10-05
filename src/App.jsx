@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import { SportProvider } from './context/SportContext'
 import { GroupProvider } from './context/GroupContext'
 import Layout from './components/Layout'
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <SportProvider>
       <GroupProvider>
+        <Analytics />
         <BrowserRouter>
           <Routes>
             <Route element={<Layout />}>
