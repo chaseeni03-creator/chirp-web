@@ -243,7 +243,11 @@ export default function ChirpGuess() {
         {rows.map((row, i) => (
           <div key={i}>
             <p className="mb-1 text-xs font-semibold text-[var(--color-text-secondary)]">{row.player.full_name}</p>
-            <div className={`grid gap-1.5 ${headers.length === 10 ? 'grid-cols-5' : 'grid-cols-4'}`}>
+            <div
+              className={`grid gap-1.5 ${
+                headers.length === 10 ? 'grid-cols-5' : headers.length === 9 ? 'grid-cols-3' : 'grid-cols-4'
+              }`}
+            >
               {row.tiles.map((t, j) => (
                 <div
                   key={j}

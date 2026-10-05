@@ -18,8 +18,8 @@ export const CHIRP_GUESS_FIELDS = {
 
 export const CHIRP_GUESS_HEADERS = {
   nfl: ['TEAM', 'CONF', 'DIV', '#', 'POS', 'HT', 'WT', 'AGE', 'RND', 'SCH'],
-  mlb: ['POS', 'LG', 'DIV', 'ERA', 'BATS', 'HT', 'WT', 'CTY', 'HOF', 'AS'],
-  nba: ['POS', 'CONF', 'DIV', 'ERA', 'RND', 'HT', 'WT', 'CTY'],
+  mlb: ['TEAM', 'POS', 'LG', 'DIV', 'ERA', 'BATS', 'HT', 'WT', 'CTY', 'AS'],
+  nba: ['TEAM', 'POS', 'CONF', 'DIV', 'ERA', 'RND', 'HT', 'WT', 'CTY'],
 }
 
 // ── Team tables (league/division/conference), ported from
@@ -228,12 +228,6 @@ function careerSpanTile(gf, gl, mf, ml) {
   return { label: 'ERA', value: `${gf}-${gl}`, color, arrow }
 }
 
-function hofTile(guessHof, mysteryHof) {
-  const gh = guessHof ?? false
-  const mh = mysteryHof ?? false
-  return { label: 'HOF', value: gh ? 'Yes' : 'No', color: gh === mh ? 'green' : 'orange', arrow: null }
-}
-
 // ── NFL ──────────────────────────────────────────────────────────────────
 
 const NFL_POSITION_GROUPS = {
@@ -338,10 +332,22 @@ function mlbCareerDivisions(m) {
   return new Set((m.previous_teams || []).map((t) => mlbResolveTeam(t)?.division).filter(Boolean))
 }
 
+function mlbTeamTile(g, m) {
+  const gCode = mlbCanonicalCode(g.current_team)
+  const mCode = mlbCanonicalCode(m.current_team)
+  const mPrev = new Set((m.previous_teams || []).map((t) => mlbCanonicalCode(t)).filter(Boolean))
+  let color
+  if (gCode != null && gCode === mCode) color = 'green'
+  else if (gCode != null && mPrev.has(gCode)) color = 'orange'
+  else color = 'grey'
+  return { label: 'TEAM', value: gCode ?? '?', color, arrow: null }
+}
+
 export function compareMlb(g, m) {
   const gTeam = mlbResolveTeam(g.current_team)
   const mTeam = mlbResolveTeam(m.current_team)
   return [
+    mlbTeamTile(g, m),
     mlbPositionTile(g, m),
     (() => {
       let color
@@ -362,7 +368,6 @@ export function compareMlb(g, m) {
     heightTile('HT', g.height, m.height),
     weightTile('WT', g.weight, m.weight, 0, 15),
     exactTile('CTY', g.birth_country, m.birth_country),
-    hofTile(g.is_hall_of_fame, m.is_hall_of_fame),
     { label: 'AS', value: g.all_star_selections ?? '0', color: rangeColor(g.all_star_selections, m.all_star_selections, 2, 5), arrow: arrowFor(g.all_star_selections, m.all_star_selections) },
   ]
 }
@@ -391,10 +396,22 @@ function nbaCareerDivisions(m) {
   return new Set((m.previous_teams || []).map((t) => nbaResolveTeam(t)?.division).filter(Boolean))
 }
 
+function nbaTeamTile(g, m) {
+  const gCode = nbaCanonicalCode(g.current_team)
+  const mCode = nbaCanonicalCode(m.current_team)
+  const mPrev = new Set((m.previous_teams || []).map((t) => nbaCanonicalCode(t)).filter(Boolean))
+  let color
+  if (gCode != null && gCode === mCode) color = 'green'
+  else if (gCode != null && mPrev.has(gCode)) color = 'orange'
+  else color = 'grey'
+  return { label: 'TEAM', value: gCode ?? '?', color, arrow: null }
+}
+
 export function compareNba(g, m) {
   const gTeam = nbaResolveTeam(g.current_team)
   const mTeam = nbaResolveTeam(m.current_team)
   return [
+    nbaTeamTile(g, m),
     nbaPositionTile(g, m),
     (() => {
       let color
