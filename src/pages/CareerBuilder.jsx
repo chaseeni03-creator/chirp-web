@@ -166,6 +166,7 @@ export default function CareerBuilder() {
     persist({ step: 'finalReveal', bonusAttempted: attempted, bonusCorrect: correct, guessedName: name })
 
     const result = {
+      sport,
       grades: gradeCareerBuilderOrderByTruePosition(userOrder),
       greenCount: s.greenCount,
       orderPoints: s.orderPoints,

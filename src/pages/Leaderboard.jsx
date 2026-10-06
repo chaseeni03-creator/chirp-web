@@ -89,6 +89,7 @@ export default function Leaderboard() {
     if (!mine) return
     const text = buildLeaderboardShareText({
       gameLabel: ALL_GAME_LABELS[gameType],
+      sport: effectiveSport,
       dateStr: gameDate,
       rank: mine.rank,
       totalPlayers: mine.total_players,

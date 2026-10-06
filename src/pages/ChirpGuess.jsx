@@ -156,6 +156,7 @@ export default function ChirpGuess() {
     // on a group leaderboard: fewer guesses scores higher, a loss scores 0.
     const groupScore = won ? Math.max(100, 1000 - (allRows.length - 1) * 100) : 0
     const result = {
+      sport,
       rows: allRows.map((r) => r.tiles),
       won,
       guessCount: allRows.length,

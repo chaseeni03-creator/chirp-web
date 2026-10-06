@@ -153,6 +153,7 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
     if (!result) return
     const text = buildLeaderboardShareText({
       gameLabel: ALL_GAME_LABELS[gameType] || gameType,
+      sport,
       dateStr: todayStr(),
       rank: result.rank,
       totalPlayers: result.total_players,

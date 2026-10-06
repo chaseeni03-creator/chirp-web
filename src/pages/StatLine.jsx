@@ -196,7 +196,7 @@ export default function StatLine() {
 
   function finish(won, finalRevealed, finalTeammate) {
     const score = won ? mystery.scoreTable[finalRevealed] || 0 : 0
-    const result = { won, cluesUsed: finalRevealed, maxClues: mystery.clueSteps.length, score, playerName: mysteryPlayer.full_name, teammate: finalTeammate ?? null }
+    const result = { sport, won, cluesUsed: finalRevealed, maxClues: mystery.clueSteps.length, score, playerName: mysteryPlayer.full_name, teammate: finalTeammate ?? null }
     saveTodayResult(gameKey, today, result)
     bumpStreak(gameKey, today, won)
     setFinished(result)

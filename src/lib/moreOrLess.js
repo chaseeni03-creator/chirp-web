@@ -335,9 +335,9 @@ export function buildMoreOrLessShareText(sport, dateStr, result) {
   if (sport === 'nfl') {
     const { difficultyLabel, difficultyKey, eraLabel, score, bestStreak, roundsPlayed } = result
     if (difficultyKey === 'hard') {
-      return `More vs Less - ${dateStr} 💀\nEra: ${eraLabel} · HARD\nScore: ${score} points\nStreak: 🔥 ${bestStreak}\nRounds: ${roundsPlayed}\nThink you can handle it? 🐦🏈`
+      return `NFL More vs Less - ${dateStr} 💀\nEra: ${eraLabel} · HARD\nScore: ${score} points\nStreak: 🔥 ${bestStreak}\nRounds: ${roundsPlayed}\nThink you can handle it? 🏈`
     }
-    return `More vs Less - ${dateStr} 🏈\nEra: ${eraLabel} · ${difficultyLabel}\nScore: ${score} points\nStreak: 🔥 ${bestStreak}\nRounds: ${roundsPlayed}\nCan you beat me? 🐦🏈`
+    return `NFL More vs Less - ${dateStr} 🏈\nEra: ${eraLabel} · ${difficultyLabel}\nScore: ${score} points\nStreak: 🔥 ${bestStreak}\nRounds: ${roundsPlayed}\nCan you beat me? 🏈`
   }
   const title = sport === 'mlb' ? 'MLB More vs Less' : 'NBA More vs Less'
   const { mode, score, bestStreak, roundsPlayed } = result
