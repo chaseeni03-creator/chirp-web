@@ -45,6 +45,11 @@ export function buildShareText(gameKey, dateStr, payload) {
       const modeLine = sport === 'nfl' ? `Mode: ${difficultyLabel} 📈\n` : ''
       return `${title} - ${date}\n${modeLine}${result}\nWrong guesses: ${wrongGuesses}\nScore: ${finalScore}/1000 ${emoji}\nCan you beat me?`
     }
+    case 'the-path': {
+      const { totalScore, correctCount, perPlayer } = payload
+      const rows = perPlayer.map((p) => `${p.solved ? '🟩' : '⬛'} ${p.playerName} — ${p.score} pts`).join('\n')
+      return `🛤️ The Path - ${date}\n${correctCount}/5 solved\n${rows}\nScore: ${totalScore}/5000\nPlay free at ${SITE_URL}`
+    }
     case 'more-or-less': {
       return `${buildMoreOrLessShareText(payload.sport, date, payload)}\nPlay free at ${SITE_URL}`
     }

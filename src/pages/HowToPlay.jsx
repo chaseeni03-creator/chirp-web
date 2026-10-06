@@ -36,6 +36,33 @@ const GAMES = [
     ],
   },
   {
+    id: 'the-path',
+    emoji: '🛤️',
+    name: 'The Path',
+    path: '/path',
+    tagline: "Guess 5 real players from their career timeline alone — team stints and years, no name or position.",
+    how: [
+      "Every day brings 5 mystery players. For each one, you see their career laid out as a timeline of team stints and the years they played there — nothing else. No name, no position. You get 3 guesses per player via search.",
+      "Two optional hints are available for each player: Show Stats reveals key career stats per team stint, and Show Position reveals their position. Using a hint locks in its score deduction immediately, whether or not you go on to guess correctly.",
+      "A wrong guess costs you an attempt but no points. Only running out of all 3 guesses scores 0 for that player — guessing correctly on your 2nd or 3rd try scores the same as your 1st, as long as you haven't used any hints.",
+    ],
+    scoring: {
+      summary: 'Each player starts at a 1,000-point ceiling. Hints cut into that ceiling the moment you use them:',
+      table: [
+        ['No hints', '1,000 pts'],
+        ['Show Stats only', '500 pts'],
+        ['Show Position only', '750 pts'],
+        ['Both hints', '375 pts'],
+      ],
+      note: 'Max possible score is 5,000 pts/day (5 players × 1,000). Show Position always costs a quarter of whatever your score currently is, so using it after Show Stats costs less in raw points than using it first — but the final score (375) is the same either way.',
+    },
+    tips: [
+      "The timeline alone is often enough for a well-traveled player — a distinctive sequence of teams and years can be more identifying than a single stat line.",
+      "Save Show Position for when you're genuinely stuck between a few candidates — it's the cheaper of the two hints relative to what's left, but still a real chunk of your score.",
+      "If the timeline doesn't ring a bell at all, Show Stats early is usually worth it — a strong season total narrows things fast, and half credit beats a wasted guess.",
+    ],
+  },
+  {
     id: 'stat-line',
     emoji: '📊',
     name: 'Stat Line',

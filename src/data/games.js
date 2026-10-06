@@ -7,6 +7,13 @@ export const games = [
     description: (sportLabel) => `Guess today's mystery ${sportLabel} player in 8 tries or fewer.`,
   },
   {
+    key: 'the-path',
+    path: '/path',
+    name: 'The Path',
+    emoji: '🛤️',
+    description: () => "Guess 5 players from their career timeline — team stints only, no names.",
+  },
+  {
     key: 'stat-line',
     path: '/statline',
     name: 'Stat Line',

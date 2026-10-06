@@ -10,6 +10,7 @@ import CareerBuilder from './pages/CareerBuilder'
 import Progression from './pages/Progression'
 import MoreOrLess from './pages/MoreOrLess'
 import Lineup from './pages/Lineup'
+import ThePath from './pages/ThePath'
 // import Grid from './pages/Grid' — hidden site-wide, see the /grid route below
 import BeforeOrAfter from './pages/BeforeOrAfter'
 import HowToPlay from './pages/HowToPlay'
@@ -37,6 +38,7 @@ export default function App() {
               <Route path="/progression" element={<Progression />} />
               <Route path="/moreorless" element={<MoreOrLess />} />
               <Route path="/lineup" element={<Lineup />} />
+              <Route path="/path" element={<ThePath />} />
               {/* Chirp Grid is temporarily hidden (all sports) — known
                   scoring/gameplay issues under investigation. Redirects
                   rather than just dropping from nav, so an old link,

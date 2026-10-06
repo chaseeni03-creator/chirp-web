@@ -60,6 +60,19 @@ export const HOW_TO_PLAY = {
     ],
     scoring: null,
   },
+  'the-path': {
+    title: 'How to Play The Path 🛤️',
+    intro: '5 players, hidden identity — can you name them from their career path alone?',
+    bullets: [
+      "Each player's career is shown as a timeline of team stints and years — no name, no position",
+      'You get 3 guesses per player via search',
+      "'Show Stats' reveals key stats per team stint — cuts your max score in half",
+      "'Show Position' reveals position — costs a quarter of whatever's left",
+      'A wrong guess costs an attempt but no points; running out of guesses scores 0 for that player',
+      '5 players, then see your total and the full reveal',
+    ],
+    scoring: 'No hints = 1000 pts\nStats only = 500 pts\nPosition only = 750 pts\nBoth hints = 375 pts\n\nMax 5000 pts/day',
+  },
   lineup: {
     title: 'How to Play The Lineup 📋',
     intro: 'Fill in the stat leaders!',

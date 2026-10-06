@@ -47,6 +47,7 @@ const LS_FAILED_JOINS_KEY = 'chirp-web:failed-joins'
 // Groups) along with games.js's matching removal. Restore by uncommenting.
 export const GAME_LABELS = {
   'chirp-guess': 'Chirp Guess',
+  'the-path': 'The Path',
   'stat-line': 'Stat Line',
   'career-builder': 'Career Builder',
   progression: 'The Progression',
@@ -70,6 +71,7 @@ export const CROSS_SPORT_GAME_LABELS = {
 }
 export const GAME_PATHS = {
   'chirp-guess': '/guess',
+  'the-path': '/path',
   'stat-line': '/statline',
   'career-builder': '/career',
   progression: '/progression',
