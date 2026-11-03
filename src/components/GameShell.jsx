@@ -34,7 +34,7 @@ export default function GameShell({ emoji, title, howToPlay, children }) {
       <div className="mb-4 flex items-center gap-2 sm:mb-6 sm:gap-3">
         <Link
           to="/"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text)] sm:h-9 sm:w-9"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-secondary)] shadow-[var(--shadow-elevation-1)] hover:text-[var(--color-text)] sm:h-9 sm:w-9"
         >
           ←
         </Link>
@@ -46,7 +46,7 @@ export default function GameShell({ emoji, title, howToPlay, children }) {
             type="button"
             onClick={() => setShowHelp(true)}
             aria-label="How to play"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] text-base text-[var(--color-text-secondary)] hover:text-[var(--color-text)] sm:h-9 sm:w-9"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] text-base text-[var(--color-text-secondary)] shadow-[var(--shadow-elevation-1)] hover:text-[var(--color-text)] sm:h-9 sm:w-9"
           >
             ℹ️
           </button>

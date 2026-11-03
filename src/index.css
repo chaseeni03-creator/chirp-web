@@ -11,17 +11,37 @@
   --color-primary: #ff2d2d;
   --color-success: #00c853;
   --color-warning: #ffb300;
+  /* Distinct from --color-primary, which is also the CTA color — an error
+     state next to a primary-red button needs to read as a different color. */
+  --color-error: #ff5c5c;
 
   --color-text: #ffffff;
   --color-text-secondary: #888888;
   --color-text-tertiary: #555555;
 
   /* Badge rarity tiers — distinct from --color-warning so a legendary badge
-     never reads as a warning state. */
+     never reads as a warning state. Also reused as the "More Games" tier
+     accent colors (src/data/gameTiers.js). */
   --color-rarity-common: #9ca3af;
   --color-rarity-rare: #3b82f6;
   --color-rarity-epic: #a855f7;
   --color-rarity-legendary: #ffd700;
+
+  /* Elevation scale — generalizes BadgePopup's one-off glow shadow into a
+     reusable 3-step depth system for the redesign's layered cards. */
+  --shadow-elevation-1: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-elevation-2: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-elevation-3: 0 12px 28px -6px rgba(0, 0, 0, 0.55), 0 4px 10px -4px rgba(0, 0, 0, 0.45);
+
+  --shadow-glow-primary: 0 0 48px -12px color-mix(in srgb, var(--color-primary) 55%, transparent);
+  --shadow-glow-epic: 0 0 48px -12px color-mix(in srgb, var(--color-rarity-epic) 55%, transparent);
+}
+
+/* Not in @theme — Tailwind has no gradient-generating theme namespace, so
+   this is consumed directly via bg-[image:var(--gradient-hero-glow)]. */
+:root {
+  --gradient-hero-glow: radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--color-primary) 35%, transparent), transparent 60%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--color-rarity-epic) 25%, transparent), transparent 60%);
 }
 
 @keyframes badge-pop {

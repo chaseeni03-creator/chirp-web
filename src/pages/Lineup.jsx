@@ -13,6 +13,7 @@ import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const SECTIONS = {
   nfl: [{ key: 'offense', label: 'OFFENSE' }, { key: 'defense', label: 'DEFENSE' }],
@@ -183,6 +184,7 @@ export default function Lineup() {
             </div>
           ))}
         </div>
+        <MoreGamesCta />
       </GameShell>
     )
   }

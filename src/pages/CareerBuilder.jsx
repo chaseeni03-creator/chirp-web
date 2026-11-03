@@ -14,6 +14,7 @@ import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -306,6 +307,7 @@ export default function CareerBuilder() {
           gameType="career-builder" sport={sport} era={era} score={finished.totalScore}
           isPerfect={finished.greenCount === 5} accuracy={finished.greenCount / 5}
         />
+        <MoreGamesCta />
       </>
     )
   }

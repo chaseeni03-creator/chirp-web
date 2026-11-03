@@ -5,6 +5,7 @@ export const games = [
     name: 'Chirp Guess',
     emoji: '🎯',
     description: (sportLabel) => `Guess today's mystery ${sportLabel} player in 8 tries or fewer.`,
+    tier: 'casual',
   },
   {
     key: 'the-path',
@@ -12,6 +13,7 @@ export const games = [
     name: 'The Path',
     emoji: '🛤️',
     description: () => "Guess 5 players from their career timeline — team stints only, no names.",
+    tier: 'serious',
   },
   {
     key: 'stat-line',
@@ -19,6 +21,7 @@ export const games = [
     name: 'Stat Line',
     emoji: '📊',
     description: () => 'Identify the player from a single revealed season stat line.',
+    tier: 'serious',
   },
   {
     key: 'career-builder',
@@ -26,6 +29,7 @@ export const games = [
     name: 'Career Builder',
     emoji: '📈',
     description: () => 'Put 5 scrambled seasons back in the right order.',
+    tier: 'elite',
   },
   {
     key: 'progression',
@@ -33,6 +37,7 @@ export const games = [
     name: 'The Progression',
     emoji: '⏩',
     description: () => 'Guess the player from their career, season by season.',
+    tier: 'elite',
   },
   {
     key: 'more-or-less',
@@ -40,6 +45,7 @@ export const games = [
     name: 'More vs Less',
     emoji: '⚔️',
     description: () => 'Endless head-to-head stat showdowns. How long can you last?',
+    tier: 'casual',
   },
   {
     key: 'lineup',
@@ -47,6 +53,7 @@ export const games = [
     name: 'The Lineup',
     emoji: '📋',
     description: (sportLabel) => `Fill 9 ${sportLabel} stat-leader categories for today's scope.`,
+    tier: 'hall-of-famer',
   },
   // Chirp Grid is temporarily hidden site-wide (all sports) — known scoring/
   // gameplay issues under investigation. The /grid route, page, and lib code

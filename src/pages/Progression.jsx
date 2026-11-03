@@ -11,6 +11,7 @@ import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
@@ -232,6 +233,7 @@ export default function Progression() {
           gameType="progression" sport={sport} era={era} score={finished.finalScore}
           isPerfect={finished.guessedCorrectly && finished.wrongGuesses === 0}
         />
+        <MoreGamesCta />
       </>
     )
   }

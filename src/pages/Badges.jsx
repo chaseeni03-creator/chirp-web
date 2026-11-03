@@ -45,7 +45,7 @@ export default function Badges() {
       </p>
 
       {streak && (streak.current_streak > 0 || streak.longest_streak > 0) && (
-        <div className="mb-6 flex items-center justify-center gap-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
+        <div className="mb-6 flex items-center justify-center gap-6 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-elevation-2)]">
           <div className="text-center">
             <p className="text-2xl font-black">🔥 {streak.current_streak}</p>
             <p className="text-xs text-[var(--color-text-secondary)]">Current streak</p>
@@ -82,6 +82,7 @@ export default function Badges() {
                         borderColor: earned ? color : 'var(--color-border)',
                         backgroundColor: 'var(--color-surface)',
                         opacity: earned ? 1 : 0.45,
+                        boxShadow: earned ? `0 0 24px -10px ${color}` : undefined,
                       }}
                     >
                       <p className="text-3xl">{earned ? badge.emoji : '🔒'}</p>

@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 
-export default function GameCard({ game, sportLabel, completed }) {
+export default function GameCard({ game, sportLabel, completed, accentColor }) {
   return (
     <Link
       to={game.path}
-      className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 transition-colors hover:border-[var(--color-primary)]/50 sm:gap-4 sm:p-4"
+      className={`flex items-center gap-3 rounded-2xl border bg-[var(--color-surface)] p-3 transition-colors hover:border-[var(--color-primary)]/50 sm:gap-4 sm:p-4 ${
+        accentColor ? 'shadow-[var(--shadow-elevation-2)]' : ''
+      }`}
+      style={accentColor ? { borderColor: `color-mix(in srgb, ${accentColor} 35%, var(--color-border))` } : undefined}
     >
+      {accentColor && <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: accentColor }} aria-hidden="true" />}
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-elevated)] text-xl sm:h-12 sm:w-12 sm:text-2xl">
         {game.emoji}
       </div>

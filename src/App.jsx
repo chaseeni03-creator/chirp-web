@@ -19,6 +19,8 @@ import Leaderboard from './pages/Leaderboard'
 import Champions from './pages/Champions'
 import GroupPage from './pages/GroupPage'
 import JoinGroupPage from './pages/JoinGroupPage'
+import MoreGames from './pages/MoreGames'
+import Profile from './pages/Profile'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import NotFound from './pages/NotFound'
@@ -47,6 +49,8 @@ export default function App() {
                   <Route path="/grid" element={<Grid />} /> once fixed. */}
               <Route path="/grid" element={<Navigate to="/" replace />} />
               <Route path="/before-or-after" element={<BeforeOrAfter />} />
+              <Route path="/games" element={<MoreGames />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/how-to-play" element={<HowToPlay />} />
               <Route path="/badges" element={<Badges />} />
               <Route path="/leaderboard" element={<Leaderboard />} />

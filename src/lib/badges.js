@@ -3,7 +3,7 @@
 // supabase/badges_system.sql's tables/RPCs (chirp_sports repo). Same
 // user_id/guest_id identity pattern as the rest of the leaderboard system —
 // a web guest's badge data carries over to the app once they sign into the
-// same Google account, via migrateGuestBadgeData() (see AccountMenu.jsx).
+// same Google account, via migrateGuestBadgeData() (see pages/Profile.jsx).
 
 import { supabase } from './supabase'
 import { getLeaderboardIdentity } from './leaderboardIdentity'

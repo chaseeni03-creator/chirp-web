@@ -10,6 +10,11 @@ import { todayStr } from '../lib/supabase'
 import { buildLeaderboardShareText, copyToClipboard, friendlyDate } from '../lib/share'
 
 const MEDAL = { 1: '👑', 2: '🥈', 3: '🥉' }
+// Universal podium convention (gold/silver/bronze), distinct from the badge
+// rarity palette — reuses the legendary/common tokens for gold/silver since
+// they land on the right hues already, and a plain bronze literal (no
+// existing token for it).
+const PODIUM_COLORS = { 1: 'var(--color-rarity-legendary)', 2: 'var(--color-rarity-common)', 3: '#cd7f32' }
 
 // Every selectable game on this page — per-sport games plus the cross-sport
 // ones (kept out of GAME_ORDER itself; see groups.js). Cross-sport games
@@ -175,21 +180,46 @@ export default function Leaderboard() {
             No scores yet {period === 'today' ? 'today' : 'yesterday'}.
           </p>
         ) : (
-          <ol className="space-y-1.5">
-            {rows.map((r) => {
-              const label = eraLabel(effectiveSport, r.era)
-              return (
-                <li key={`${r.rank}-${r.nickname}`} className="flex items-center justify-between text-sm">
-                  <span>
-                    {MEDAL[r.rank] ? `${MEDAL[r.rank]} ` : ''}#{r.rank} {r.nickname}
-                  </span>
-                  <span className="font-bold">
-                    {r.score.toLocaleString()} pts{label && <span className="font-normal text-[var(--color-text-secondary)]"> ({label})</span>}
-                  </span>
-                </li>
-              )
-            })}
-          </ol>
+          <>
+            {rows.some((r) => r.rank <= 3) && (
+              <div className="mb-3 space-y-2">
+                {rows.filter((r) => r.rank <= 3).map((r) => {
+                  const label = eraLabel(effectiveSport, r.era)
+                  const color = PODIUM_COLORS[r.rank]
+                  return (
+                    <div
+                      key={`${r.rank}-${r.nickname}`}
+                      className="flex items-center justify-between rounded-xl border p-3"
+                      style={{ borderColor: color, backgroundColor: 'var(--color-surface)', boxShadow: `0 0 24px -10px ${color}` }}
+                    >
+                      <span className="flex items-center gap-2 font-bold">
+                        <span className="text-lg">{MEDAL[r.rank]}</span>#{r.rank} {r.nickname}
+                      </span>
+                      <span className="font-bold" style={{ color }}>
+                        {r.score.toLocaleString()} pts{label && <span className="font-normal text-[var(--color-text-secondary)]"> ({label})</span>}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {rows.some((r) => r.rank > 3) && (
+              <ol className="space-y-1.5">
+                {rows.filter((r) => r.rank > 3).map((r) => {
+                  const label = eraLabel(effectiveSport, r.era)
+                  return (
+                    <li key={`${r.rank}-${r.nickname}`} className="flex items-center justify-between text-sm">
+                      <span>#{r.rank} {r.nickname}</span>
+                      <span className="font-bold">
+                        {r.score.toLocaleString()} pts{label && <span className="font-normal text-[var(--color-text-secondary)]"> ({label})</span>}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+          </>
         )}
 
         {mine && (

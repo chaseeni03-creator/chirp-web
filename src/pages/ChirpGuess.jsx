@@ -10,6 +10,7 @@ import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const MAX_GUESSES = 8
 
@@ -221,6 +222,7 @@ export default function ChirpGuess() {
           gameType="chirp-guess" sport={sport} era="all_time" score={finished.groupScore}
           isPerfect={finished.won && finished.guessCount === 1}
         />
+        <MoreGamesCta />
       </GameShell>
     )
   }

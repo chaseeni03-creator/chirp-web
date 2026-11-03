@@ -16,6 +16,7 @@ import ShareResult from '../components/ShareResult'
 import EraSelector from '../components/EraSelector'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const NFL_HINT_PLAYER_FIELDS = 'id, full_name, position, current_team, previous_teams, conference, season_first, season_last'
 const PLAYER_FIELDS = {
@@ -296,6 +297,7 @@ export default function StatLine() {
           gameType="stat-line" sport={sport} era={era} score={finished.score}
           isPerfect={finished.won && finished.cluesUsed === 1}
         />
+        <MoreGamesCta />
       </>
     )
   }

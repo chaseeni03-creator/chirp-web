@@ -280,7 +280,7 @@ export default function DailyLeaderboardBanner({ gameType, sport, era, difficult
   }
 
   return (
-    <div className="mt-4 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 p-3 text-sm">
+    <div className="mt-4 rounded-xl border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 p-3 text-sm shadow-[var(--shadow-elevation-2)]">
       <BadgePopup badges={newBadges} />
       {streak && streak.current_streak > 0 && (
         <div className="mb-2 flex items-center justify-center gap-4 rounded-lg bg-[var(--color-elevated)] py-2 text-xs font-bold">

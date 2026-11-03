@@ -6,6 +6,7 @@ import { getTodaysQuestions, scoreFor, TOTAL_QUESTIONS, SECONDS_PER_QUESTION } f
 import GameShell, { Loading, ErrorMsg } from '../components/GameShell'
 import ShareResult from '../components/ShareResult'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const GAME_KEY = 'before-or-after'
 const REVEAL_PAUSE_MS = 1200
@@ -186,6 +187,7 @@ export default function BeforeOrAfter() {
         <p className="mt-4 text-center text-xs text-[var(--color-text-secondary)]">
           Come back tomorrow for 10 new questions!
         </p>
+        <MoreGamesCta />
       </GameShell>
     )
   }

@@ -10,6 +10,7 @@ import PlayerSearchInput from '../components/PlayerSearchInput'
 import ShareResult from '../components/ShareResult'
 import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
+import MoreGamesCta from '../components/MoreGamesCta'
 
 const MAX_GUESSES = 3
 
@@ -189,6 +190,7 @@ export default function ThePath() {
           isPerfect={finished.isPerfect}
           accuracy={finished.accuracy}
         />
+        <MoreGamesCta />
       </>,
     )
   }
