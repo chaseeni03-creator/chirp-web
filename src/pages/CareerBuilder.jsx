@@ -234,7 +234,7 @@ export default function CareerBuilder() {
         : 'text-[var(--color-text-secondary)]'
     return shell(
       <>
-        <div className="mb-3 border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
+        <div className="mb-3 border border-[var(--color-border)] bg-[var(--color-elevated)] p-4 shadow-[var(--shadow-elevation-1)]">
           <p className={`text-sm font-bold ${headlineColor}`}>{headline}</p>
           <p className="mt-0.5 text-lg font-bold">{finished.playerName}</p>
           {finished.position && <p className="text-xs text-[var(--color-text-secondary)]">{finished.position}</p>}
@@ -244,7 +244,7 @@ export default function CareerBuilder() {
         </div>
 
         {!finished.bonusCorrect && finishedConfig && finished.seasons?.length === 5 && (
-          <div className="mb-3 flex items-start gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3">
+          <div className="mb-3 flex items-start gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 shadow-[var(--shadow-elevation-1)]">
             <span className="text-[var(--color-warning)]">💡</span>
             <p className="text-xs text-[var(--color-text-secondary)]">{careerArcSummary(finishedConfig, finished.seasons)}</p>
           </div>
@@ -255,7 +255,7 @@ export default function CareerBuilder() {
             {finished.seasons.map((s, i) => {
               const grade = finished.grades[i]
               return (
-                <div key={s.season} className={`border bg-[var(--color-surface)] p-3 ${grade ? gradeBorder[grade] : 'border-[var(--color-border)]'}`}>
+                <div key={s.season} className={`border bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-1)] ${grade ? gradeBorder[grade] : 'border-[var(--color-border)]'}`}>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-bold text-[var(--color-text-secondary)]">{s.season}</span>
                     {s.team && <span className="text-sm font-semibold">{s.team}</span>}
@@ -274,7 +274,7 @@ export default function CareerBuilder() {
           </div>
         )}
 
-        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 text-sm">
+        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-elevated)] p-3 text-sm shadow-[var(--shadow-elevation-1)]">
           <p className="mb-2 text-xs font-bold tracking-wide text-[var(--color-text-tertiary)]">SCORE BREAKDOWN</p>
           <div className="flex justify-between py-0.5">
             <span className="text-[var(--color-text-secondary)]">Order accuracy</span>
@@ -318,7 +318,7 @@ export default function CareerBuilder() {
     <>
       {step === 'ordering' && (
         <>
-          <div className="mb-3 flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] px-3.5 py-2.5">
+          <div className="mb-3 flex items-center gap-2 border border-[var(--color-border)] bg-[var(--color-elevated)] px-3.5 py-2.5 shadow-[var(--shadow-elevation-1)]">
             <span className="text-[var(--color-primary)]">📈</span>
             <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
               This player played {totalSeasonsPlayed} seasons {LEAGUE_PHRASE[sport]}
@@ -345,7 +345,7 @@ export default function CareerBuilder() {
           return (
             <div
               key={seasonIdx}
-              className={`flex items-center gap-3 border bg-[var(--color-surface)] p-3 ${grade ? gradeBorder[grade] : 'border-[var(--color-border)]'}`}
+              className={`flex items-center gap-3 border bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-1)] ${grade ? gradeBorder[grade] : 'border-[var(--color-border)]'}`}
             >
               <span className="w-12 shrink-0 text-center font-bold text-[var(--color-text-secondary)]">
                 {revealSeason ? s.season : `Slot ${slot + 1}`}

@@ -243,19 +243,19 @@ export default function MoreOrLess() {
         <p className="mb-1 text-center text-2xl font-black">{result.score} pts</p>
         <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">Out of lives!</p>
         <div className="mb-4 grid grid-cols-2 gap-3">
-          <div className="bg-[var(--color-elevated)] p-3 text-center">
+          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-1)]">
             <p className="font-bold">{result.roundsPlayed}</p>
             <p className="text-xs text-[var(--color-text-tertiary)]">Rounds played</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center">
+          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-1)]">
             <p className="font-bold">🔥 {result.bestStreak}</p>
             <p className="text-xs text-[var(--color-text-tertiary)]">Best streak</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center">
+          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-1)]">
             <p className="font-bold">{result.correctAnswers}/{result.roundsPlayed}</p>
             <p className="text-xs text-[var(--color-text-tertiary)]">Correct</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center">
+          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-1)]">
             <p className="font-bold">{longest.name}</p>
             <p className="text-xs text-[var(--color-text-tertiary)]">Longest reign ({longest.rounds})</p>
           </div>
@@ -302,7 +302,7 @@ export default function MoreOrLess() {
                   key={side}
                   onClick={() => pick(isChampion)}
                   disabled={revealing || generating}
-                  className={`rounded-2xl border p-4 text-center transition-colors ${
+                  className={`rounded-2xl border p-4 text-center shadow-[var(--shadow-elevation-2)] transition-colors ${
                     flashGreen ? 'border-[var(--color-success)] bg-[var(--color-success)]/10' :
                     flashRed ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' :
                     'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/50'

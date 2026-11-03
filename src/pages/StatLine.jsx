@@ -307,7 +307,7 @@ export default function StatLine() {
 
   return shell(
     <>
-      <div className="mb-4 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3">
+      <div className="mb-4 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 shadow-[var(--shadow-elevation-1)]">
         <span className="font-bold">{mystery.positionLabel}</span>
         <span className="text-sm text-[var(--color-text-secondary)]">{revealed}/{mystery.clueSteps.length} clues</span>
       </div>
@@ -317,7 +317,7 @@ export default function StatLine() {
           const idx = mystery.clueSteps.indexOf(key)
           const shown = revealed > idx
           return (
-            <div key={key} className={`border p-3 ${shown ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)]'}`}>
+            <div key={key} className={`border p-3 shadow-[var(--shadow-elevation-1)] ${shown ? 'border-[var(--color-border)] bg-[var(--color-surface)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)]'}`}>
               <p className="text-xs text-[var(--color-text-secondary)]">{mystery.gridHeaders[key]}</p>
               <p className="text-lg font-bold tabular-nums">{shown ? mystery.formatValue(key) : '?'}</p>
             </div>
@@ -345,7 +345,7 @@ export default function StatLine() {
           tier, before that final guess) makes the hint functional instead of
           a pure "here's what you missed" consolation. */}
       {teammate && (
-        <div className="mt-3 whitespace-pre-line rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-2 text-xs font-semibold leading-snug text-[var(--color-text)]">
+        <div className="mt-3 whitespace-pre-line rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-3 py-2 text-xs font-semibold leading-snug text-[var(--color-text)] shadow-[var(--shadow-elevation-1)]">
           {teammateClueText(teammate)}
         </div>
       )}
