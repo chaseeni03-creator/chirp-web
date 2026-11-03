@@ -6,6 +6,7 @@ import GroupOnboarding from '../components/GroupOnboarding'
 import WelcomeBackGate from '../components/WelcomeBackGate'
 import ScoreToast from '../components/ScoreToast'
 import LoadingScreen from '../components/LoadingScreen'
+import SportSelector from '../components/SportSelector'
 import { useGroup } from '../context/GroupContext'
 import { useSport } from '../context/SportContext'
 import { SPORT_META } from '../lib/sports'
@@ -134,6 +135,10 @@ export default function GroupPage() {
   return (
     <div>
       <Seo title={`${activeGroup.name} — Group Leaderboard`} />
+
+      <div className="mb-4">
+        <SportSelector />
+      </div>
 
       {user.groups.length > 1 && (
         <div className="mb-3 flex flex-wrap gap-2">

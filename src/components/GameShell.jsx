@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import Seo from './Seo'
 import HowToPlayModal from './HowToPlayModal'
 import { HOW_TO_PLAY } from '../data/howToPlay'
+import { useSport } from '../context/SportContext'
 
 const DISMISSED_KEY_PREFIX = 'chirp-web:how-to-play-dismissed:'
 
@@ -15,6 +16,7 @@ function isDismissed(gameKey) {
 }
 
 export default function GameShell({ emoji, title, howToPlay, children }) {
+  const { sport } = useSport()
   const [showHelp, setShowHelp] = useState(false)
 
   // Auto-opens once per game, the first time it's ever visited — same modal
@@ -52,6 +54,11 @@ export default function GameShell({ emoji, title, howToPlay, children }) {
           </button>
         )}
       </div>
+      {sport === 'mlb' && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-[var(--color-warning)]/40 bg-[var(--color-warning)]/10 px-3 py-2 text-xs font-semibold text-[var(--color-warning)]">
+          ⚾ Showing 2025 season stats — MLB's 2026 season update isn't out until early 2027.
+        </div>
+      )}
       {children}
       {showHelp && (
         <HowToPlayModal
