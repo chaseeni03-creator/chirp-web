@@ -294,7 +294,7 @@ export default function ThePath() {
           <p className="mb-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">
             {remaining} guess{remaining === 1 ? '' : 'es'} left · guess now for up to {liveMax} pts
           </p>
-          <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
+          <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" showCareerSpan={false} />
         </>
       )}
     </>,

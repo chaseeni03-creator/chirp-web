@@ -88,8 +88,14 @@ function yearsActiveLabel(p) {
  * is always a current player (NFL Chirp Guess) so the guess box can't
  * suggest a retired one — every other game/sport leaves this off since they
  * intentionally draw from a player's whole career.
+ *
+ * showCareerSpan defaults to true (every existing call site's current
+ * behavior) — pass false for a game where a candidate's years-active would
+ * itself be a spoiler. The Path is exactly that: it shows the mystery
+ * player's own team-stint years, so a guess candidate's years overlapping
+ * (or not) leaks how close the guess is before you've even submitted it.
  */
-export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled, activeOnly = false }) {
+export default function PlayerSearchInput({ table, onSelect, placeholder = 'Search player…', disabled, activeOnly = false, showCareerSpan = true }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [open, setOpen] = useState(false)
@@ -173,7 +179,7 @@ export default function PlayerSearchInput({ table, onSelect, placeholder = 'Sear
             >
               <span className="font-medium">{p.full_name}</span>
               <span className="text-xs text-[var(--color-text-secondary)]">
-                {[p.position, p.current_team, yearsActiveLabel(p)].filter(Boolean).join(' · ')}
+                {[p.position, p.current_team, showCareerSpan ? yearsActiveLabel(p) : null].filter(Boolean).join(' · ')}
               </span>
             </button>
           ))}
