@@ -235,7 +235,17 @@ export default function StatLine() {
     }
     if (sport === 'nfl') {
       const { data: full } = await supabase.from(tables.players).select(NFL_HINT_PLAYER_FIELDS).eq('id', guessedPlayer.id).single()
-      setHints(nflHintsAgainst(mystery, mysteryPlayer, full || guessedPlayer))
+      const rawHints = nflHintsAgainst(mystery, mysteryPlayer, full || guessedPlayer)
+      // "Right position!" is dropped entirely — the position is already
+      // shown on screen, so confirming a guess matched it isn't new
+      // information. "Right era!" is dropped too, except in All Time mode:
+      // every other era is a decade the player already picked themselves
+      // (era === a preset decade), so telling them their guess is also from
+      // that decade is trivially true. All Time has no such preset, so the
+      // era hint is the only case where it's a real signal.
+      rawHints.delete('position')
+      if (era !== 'allTime') rawHints.delete('era')
+      setHints(rawHints)
     }
     const nextWrong = [...wrongGuesses, guessedPlayer.full_name]
     setWrongGuesses(nextWrong)
