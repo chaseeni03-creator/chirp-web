@@ -35,35 +35,39 @@ export function summarizeSession(perPlayer) {
   }
 }
 
+// All values The Path stores per stat are per-game averages (see
+// derive_path_players.js / derive_mlb_path_players.js /
+// derive_nba_path_players.js), not career/stint totals — the "/G" suffix
+// says so explicitly rather than relying on the decimal to imply it.
 const STAT_LABELS = {
-  passing_yards: 'Pass Yds',
-  passing_touchdowns: 'Pass TD',
-  passing_attempts: 'Att',
-  passing_completions: 'Comp',
-  interceptions_thrown: 'INT',
-  rushing_yards: 'Rush Yds',
-  rushing_touchdowns: 'Rush TD',
-  rushing_attempts: 'Carries',
-  receiving_yards: 'Rec Yds',
-  receiving_touchdowns: 'Rec TD',
-  receptions: 'Rec',
-  targets: 'Tgt',
-  tackles: 'Tackles',
-  sacks: 'Sacks',
-  interceptions_caught: 'INT',
-  passes_defended: 'PD',
+  passing_yards: 'Pass Yds/G',
+  passing_touchdowns: 'Pass TD/G',
+  passing_attempts: 'Att/G',
+  passing_completions: 'Comp/G',
+  interceptions_thrown: 'INT/G',
+  rushing_yards: 'Rush Yds/G',
+  rushing_touchdowns: 'Rush TD/G',
+  rushing_attempts: 'Carries/G',
+  receiving_yards: 'Rec Yds/G',
+  receiving_touchdowns: 'Rec TD/G',
+  receptions: 'Rec/G',
+  targets: 'Tgt/G',
+  tackles: 'Tackles/G',
+  sacks: 'Sacks/G',
+  interceptions_caught: 'INT/G',
+  passes_defended: 'PD/G',
   // MLB (derive_mlb_path_players.js)
-  at_bats: 'AB',
-  home_runs: 'HR',
-  rbi: 'RBI',
-  games_started: 'GS',
-  wins: 'W',
-  losses: 'L',
-  strikeouts_pitched: 'K',
+  at_bats: 'AB/G',
+  home_runs: 'HR/G',
+  rbi: 'RBI/G',
+  games_started: 'GS/G',
+  wins: 'W/G',
+  losses: 'L/G',
+  strikeouts_pitched: 'K/G',
   // NBA (derive_nba_path_players.js)
-  total_points: 'PTS',
-  total_rebounds: 'REB',
-  total_assists: 'AST',
+  total_points: 'PPG',
+  total_rebounds: 'RPG',
+  total_assists: 'APG',
 }
 
 export function statLabel(key) {
