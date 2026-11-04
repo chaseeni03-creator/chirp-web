@@ -307,7 +307,7 @@ export default function StatLine() {
 
   return shell(
     <>
-      <div className="mb-4 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 shadow-[var(--shadow-elevation-2)]">
+      <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 shadow-[var(--shadow-elevation-2)]">
         <span className="font-bold">{mystery.positionLabel}</span>
         <span className="text-sm text-[var(--color-text-secondary)]">{revealed}/{mystery.clueSteps.length} clues</span>
       </div>
@@ -317,7 +317,7 @@ export default function StatLine() {
           const idx = mystery.clueSteps.indexOf(key)
           const shown = revealed > idx
           return (
-            <div key={key} className={`border p-3 ${shown ? 'border-[var(--color-primary)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-primary-card)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)] shadow-[var(--shadow-elevation-2)]'}`}>
+            <div key={key} className={`rounded-xl border p-3 ${shown ? 'border-[var(--color-primary)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-primary-card)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)] shadow-[var(--shadow-elevation-2)]'}`}>
               <p className="text-xs text-[var(--color-text-secondary)]">{mystery.gridHeaders[key]}</p>
               <p className="text-lg font-bold tabular-nums">{shown ? mystery.formatValue(key) : '?'}</p>
             </div>

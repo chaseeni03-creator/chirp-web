@@ -216,7 +216,7 @@ export default function MoreOrLess() {
 
         {notice && <p className="mb-3 text-center text-sm text-[var(--color-error)]">{notice}</p>}
         <p className="mb-3 text-center text-xs text-[var(--color-text-tertiary)]">Personal best: {personalBest}</p>
-        <button onClick={startGame} className="w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white">
+        <button onClick={startGame} className="w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
           Play
         </button>
       </GameShell>

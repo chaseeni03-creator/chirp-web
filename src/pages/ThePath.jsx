@@ -169,7 +169,7 @@ export default function ThePath() {
           {finished.perPlayer.map((p, i) => (
             <div
               key={i}
-              className={`flex items-center justify-between border px-3 py-2.5 ${
+              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
                 p.solved
                   ? 'border-[var(--color-success)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-success)]'
                   : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-elevation-2)]'
@@ -281,7 +281,7 @@ export default function ThePath() {
 
       {(solved || failed) && (
         <div
-          className={`mb-4 border p-4 ${
+          className={`mb-4 rounded-xl border p-4 ${
             solved
               ? 'border-[var(--color-success)] bg-[var(--color-success)]/10 shadow-[var(--shadow-glow-success)]'
               : 'border-[var(--color-error)] bg-[var(--color-error)]/10 shadow-[var(--shadow-glow-error)]'
@@ -291,7 +291,7 @@ export default function ThePath() {
             {solved ? `🎉 Correct! +${results[results.length - 1]?.score ?? 0} pts` : '😔 Out of guesses'}
           </p>
           <p className="mb-3 text-sm">The player was {current.player.full_name}</p>
-          <button onClick={nextPlayer} className="w-full rounded-lg bg-[var(--color-primary)] py-3 font-bold text-white">
+          <button onClick={nextPlayer} className="w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
             {currentIndex >= players.length - 1 ? 'See Results' : 'Next Player'}
           </button>
         </div>
