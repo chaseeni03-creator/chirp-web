@@ -4,10 +4,16 @@ import { useSport } from '../context/SportContext'
 import { SPORT_META } from '../lib/sports'
 import useCompletedGames from '../hooks/useCompletedGames'
 
+// Only these 4 rotate through the hero — Career Builder, Progression, and
+// The Lineup are deliberately left out (per request), not every game in
+// the catalog.
+const FEATURED_KEYS = ['the-path', 'stat-line', 'chirp-guess', 'more-or-less']
+const FEATURED_GAMES = FEATURED_KEYS.map((key) => games.find((g) => g.key === key)).filter(Boolean)
+
 /** Same game all day for everyone (not random-per-load) — a stable pick keeps a visitor's first and second page load consistent instead of flickering between games on refresh. Shared across sports (the catalog itself doesn't vary by sport, only each game's description text does), so an NFL and MLB visitor see "today is Stat Line day" on the same day, just with sport-specific copy. */
 function todaysFeaturedGame() {
   const daysSinceEpoch = Math.floor(Date.now() / 86400000)
-  return games[daysSinceEpoch % games.length]
+  return FEATURED_GAMES[daysSinceEpoch % FEATURED_GAMES.length]
 }
 
 /** Front-and-center pick of the day, above the full games grid — the grid stays untouched below this for anyone who wants to browse instead. */
