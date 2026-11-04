@@ -16,6 +16,17 @@ import GroupScoreBanner from '../components/GroupScoreBanner'
 import DailyLeaderboardBanner from '../components/DailyLeaderboardBanner'
 import MoreGamesCta from '../components/MoreGamesCta'
 
+// The current season is still in progress for these two sports — a
+// handful of early-season games reads as a thin, unrepresentative "season"
+// next to 4 complete ones in the same 5-card spread. Mirrors
+// CareerBuilderService._currentIncompleteSeason / NbaCareerBuilderService's
+// equivalent in chirp_sports (NBA labels a season by its end year, so 2027
+// is the in-progress 2026-27 season) — bump both the day this season
+// actually finishes. MLB has no entry: its source data doesn't have a
+// current-season row at all yet (see the Lahman release-wait banner), so
+// there's nothing to exclude.
+const CURRENT_INCOMPLETE_SEASON = { nfl: 2026, nba: 2027 }
+
 const PLAYER_FIELDS = {
   nfl: 'id, full_name, position',
   mlb: 'id, full_name, position, position_group',
@@ -94,9 +105,13 @@ export default function CareerBuilder() {
         return
       }
 
+      let seasonQuery = supabase.from(tables.seasonStats).select('*').eq('player_id', daily.player_id)
+      const incompleteSeason = CURRENT_INCOMPLETE_SEASON[sport]
+      if (incompleteSeason != null) seasonQuery = seasonQuery.lt('season', incompleteSeason)
+
       const [{ data: p }, { data: allSeasons }] = await Promise.all([
         supabase.from(tables.players).select(PLAYER_FIELDS[sport]).eq('id', daily.player_id).single(),
-        supabase.from(tables.seasonStats).select('*').eq('player_id', daily.player_id).order('season'),
+        seasonQuery.order('season'),
       ])
       if (cancelled) return
 
