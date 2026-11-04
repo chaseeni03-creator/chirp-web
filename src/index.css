@@ -35,6 +35,15 @@
 
   --shadow-glow-primary: 0 0 48px -12px color-mix(in srgb, var(--color-primary) 55%, transparent);
   --shadow-glow-epic: 0 0 48px -12px color-mix(in srgb, var(--color-rarity-epic) 55%, transparent);
+
+  /* Card-scaled glows (tighter radius than the hero's) for in-game color
+     states — a correct/wrong/hint signal should pop the same way the
+     hero/badges/podium already do, not just get a barely-visible dark
+     shadow that disappears against the near-black background. */
+  --shadow-glow-success: 0 0 28px -10px color-mix(in srgb, var(--color-success) 60%, transparent);
+  --shadow-glow-warning: 0 0 28px -10px color-mix(in srgb, var(--color-warning) 60%, transparent);
+  --shadow-glow-error: 0 0 28px -10px color-mix(in srgb, var(--color-error) 60%, transparent);
+  --shadow-glow-primary-card: 0 0 28px -10px color-mix(in srgb, var(--color-primary) 60%, transparent);
 }
 
 /* Not in @theme — Tailwind has no gradient-generating theme namespace, so

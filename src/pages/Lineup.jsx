@@ -142,7 +142,7 @@ export default function Lineup() {
       <GameShell emoji="📋" title={title} howToPlay="lineup">
         <p className="mb-1 text-center text-sm font-bold text-[var(--color-text-tertiary)]">{finished.scopeLabel}</p>
         <p className="mb-4 text-center text-2xl font-black">{finished.totalScore.toLocaleString()} pts</p>
-        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm shadow-[var(--shadow-elevation-1)]">
+        <div className="mb-4 border border-[var(--color-border)] bg-[var(--color-surface)] p-3 text-sm shadow-[var(--shadow-elevation-2)]">
           <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">Base score</span><span className="font-bold">{finished.baseScore}</span></div>
           {finished.bonuses.allTop3 > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">All Top 3</span><span className="font-bold">+{finished.bonuses.allTop3}</span></div>}
           {finished.bonuses.allFirst > 0 && <div className="flex justify-between py-0.5"><span className="text-[var(--color-text-secondary)]">All #1</span><span className="font-bold">+{finished.bonuses.allFirst}</span></div>}
@@ -165,7 +165,12 @@ export default function Lineup() {
                   const g = finished.guessesByKey[c.key]
                   const top3 = finished.top3ByKey[c.key] || []
                   return (
-                    <div key={c.key} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-1)]">
+                    <div
+                      key={c.key}
+                      className={`border border-[var(--color-border)] bg-[var(--color-surface)] p-3 ${
+                        g?.rank === 1 ? 'shadow-[var(--shadow-glow-warning)]' : g?.rank ? 'shadow-[var(--shadow-glow-success)]' : 'shadow-[var(--shadow-elevation-2)]'
+                      }`}
+                    >
                       <div className="flex items-center justify-between text-sm">
                         <span className="font-bold">{c.label}</span>
                         <span>{medal(g?.rank)} {g?.rank ? g.playerName : 'Missed'} <span className="text-[var(--color-text-tertiary)]">(+{g?.points ?? 0})</span></span>
@@ -193,7 +198,7 @@ export default function Lineup() {
 
   return (
     <GameShell emoji="📋" title={title} howToPlay="lineup">
-      <p className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold shadow-[var(--shadow-elevation-1)]">
+      <p className="mb-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-2 text-center text-sm font-bold shadow-[var(--shadow-elevation-2)]">
         {lineupScopeTimeLabel(scope, time)}
       </p>
 
@@ -220,7 +225,12 @@ export default function Lineup() {
           const g = guesses[c.key]
           const top3 = top3ByKey[c.key] || []
           return (
-            <div key={c.key} className="border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-1)]">
+            <div
+              key={c.key}
+              className={`border border-[var(--color-border)] bg-[var(--color-surface)] p-3 ${
+                g?.rank === 1 ? 'shadow-[var(--shadow-glow-warning)]' : g?.rank ? 'shadow-[var(--shadow-glow-success)]' : 'shadow-[var(--shadow-elevation-2)]'
+              }`}
+            >
               <p className="mb-1.5 text-sm font-semibold text-[var(--color-text-secondary)]">{c.label}</p>
               {g ? (
                 <div>

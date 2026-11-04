@@ -15,9 +15,9 @@ import MoreGamesCta from '../components/MoreGamesCta'
 const MAX_GUESSES = 8
 
 const tileColor = {
-  green: 'bg-[var(--color-success)]/20 border-[var(--color-success)] text-[var(--color-success)]',
-  orange: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)]',
-  grey: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)]',
+  green: 'bg-[var(--color-success)]/20 border-[var(--color-success)] text-[var(--color-success)] shadow-[var(--shadow-glow-success)]',
+  orange: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)] shadow-[var(--shadow-glow-warning)]',
+  grey: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)] shadow-[var(--shadow-elevation-2)]',
 }
 
 // supabase-js retries a failed network request internally with its own
@@ -250,7 +250,7 @@ export default function ChirpGuess() {
               {row.tiles.map((t, j) => (
                 <div
                   key={j}
-                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold shadow-[var(--shadow-elevation-1)] ${tileColor[t.color]}`}
+                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold ${tileColor[t.color]}`}
                   title={headers[j]}
                 >
                   <span>{headers[j]}</span>

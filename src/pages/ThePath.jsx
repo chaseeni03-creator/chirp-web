@@ -169,7 +169,11 @@ export default function ThePath() {
           {finished.perPlayer.map((p, i) => (
             <div
               key={i}
-              className="flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2.5 shadow-[var(--shadow-elevation-1)]"
+              className={`flex items-center justify-between border px-3 py-2.5 ${
+                p.solved
+                  ? 'border-[var(--color-success)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-success)]'
+                  : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-elevation-2)]'
+              }`}
             >
               <span className="flex items-center gap-2 font-semibold">
                 <span>{p.solved ? '🟩' : '⬛'}</span>
@@ -277,8 +281,10 @@ export default function ThePath() {
 
       {(solved || failed) && (
         <div
-          className={`mb-4 border p-4 shadow-[var(--shadow-elevation-1)] ${
-            solved ? 'border-[var(--color-success)] bg-[var(--color-success)]/10' : 'border-[var(--color-error)] bg-[var(--color-error)]/10'
+          className={`mb-4 border p-4 ${
+            solved
+              ? 'border-[var(--color-success)] bg-[var(--color-success)]/10 shadow-[var(--shadow-glow-success)]'
+              : 'border-[var(--color-error)] bg-[var(--color-error)]/10 shadow-[var(--shadow-glow-error)]'
           }`}
         >
           <p className="mb-1 font-bold">
