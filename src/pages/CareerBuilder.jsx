@@ -25,11 +25,11 @@ const PLAYER_FIELDS = {
 const LEAGUE_PHRASE = { nfl: 'in the NFL', mlb: 'in MLB', nba: 'in the NBA' }
 
 const gradeBorder = {
-  green: 'border-[var(--color-success)] shadow-[var(--shadow-glow-success)]',
-  orange: 'border-[var(--color-warning)] shadow-[var(--shadow-glow-warning)]',
-  red: 'border-[var(--color-primary)] shadow-[var(--shadow-glow-primary-card)]',
+  green: 'border-l-[var(--color-success)]',
+  orange: 'border-l-[var(--color-warning)]',
+  red: 'border-l-[var(--color-primary)]',
 }
-const gradeBorderNeutral = 'border-[var(--color-border)] shadow-[var(--shadow-elevation-2)]'
+const gradeBorderNeutral = 'border-l-[var(--color-border)]'
 
 export default function CareerBuilder() {
   const { sport } = useSport()
@@ -256,7 +256,7 @@ export default function CareerBuilder() {
             {finished.seasons.map((s, i) => {
               const grade = finished.grades[i]
               return (
-                <div key={s.season} className={`rounded-xl border bg-[var(--color-surface)] p-3 ${grade ? gradeBorder[grade] : gradeBorderNeutral}`}>
+                <div key={s.season} className={`rounded-xl border-l-4 bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-2)] ${grade ? gradeBorder[grade] : gradeBorderNeutral}`}>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="font-bold text-[var(--color-text-secondary)]">{s.season}</span>
                     {s.team && <span className="text-sm font-semibold">{s.team}</span>}
@@ -264,8 +264,8 @@ export default function CareerBuilder() {
                   <div className="flex flex-wrap gap-3">
                     {finishedConfig.statKeys.map((key) => (
                       <div key={key}>
-                        <p className="text-[10px] text-[var(--color-text-secondary)]">{finishedConfig.labelFor(key)}</p>
-                        <p className="font-bold tabular-nums">{finishedConfig.formatValue(s, key)}</p>
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{finishedConfig.labelFor(key)}</p>
+                        <p className="text-xl font-black tabular-nums">{finishedConfig.formatValue(s, key)}</p>
                       </div>
                     ))}
                   </div>
@@ -319,9 +319,12 @@ export default function CareerBuilder() {
     <>
       {step === 'ordering' && (
         <>
-          <div className="mb-3 flex items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-3.5 py-2.5 shadow-[var(--shadow-elevation-2)]">
-            <span className="text-[var(--color-primary)]">📈</span>
-            <p className="text-sm font-semibold text-[var(--color-text-secondary)]">
+          <div
+            className="mb-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5 shadow-[var(--shadow-scoreboard-banner)]"
+            style={{ backgroundImage: 'var(--gradient-scoreboard)' }}
+          >
+            <span>📈</span>
+            <p className="text-sm font-extrabold">
               This player played {totalSeasonsPlayed} seasons {LEAGUE_PHRASE[sport]}
             </p>
           </div>
@@ -346,7 +349,7 @@ export default function CareerBuilder() {
           return (
             <div
               key={seasonIdx}
-              className={`flex items-center gap-3 rounded-xl border bg-[var(--color-surface)] p-3 ${grade ? gradeBorder[grade] : gradeBorderNeutral}`}
+              className={`flex items-center gap-3 rounded-xl border-l-4 bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-2)] ${grade ? gradeBorder[grade] : gradeBorderNeutral}`}
             >
               <span className="w-12 shrink-0 text-center font-bold text-[var(--color-text-secondary)]">
                 {revealSeason ? s.season : `Slot ${slot + 1}`}
@@ -354,8 +357,8 @@ export default function CareerBuilder() {
               <div className="flex flex-1 flex-wrap gap-3">
                 {config.statKeys.map((key) => (
                   <div key={key}>
-                    <p className="text-[10px] text-[var(--color-text-secondary)]">{config.labelFor(key)}</p>
-                    <p className="font-bold tabular-nums">{config.formatValue(s, key)}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{config.labelFor(key)}</p>
+                    <p className="text-xl font-black tabular-nums">{config.formatValue(s, key)}</p>
                   </div>
                 ))}
                 {s.team && (
@@ -377,13 +380,21 @@ export default function CareerBuilder() {
       </div>
 
       {step === 'ordering' && (
-        <button onClick={confirmOrder} className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
+        <button
+          onClick={confirmOrder}
+          className="mt-6 w-full rounded-xl py-3 font-black text-white shadow-[var(--shadow-scoreboard-btn)]"
+          style={{ backgroundImage: 'var(--gradient-scoreboard-btn)' }}
+        >
           Confirm Order
         </button>
       )}
 
       {step === 'orderRevealed' && (
-        <button onClick={goToBonus} className="mt-6 w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
+        <button
+          onClick={goToBonus}
+          className="mt-6 w-full rounded-xl py-3 font-black text-white shadow-[var(--shadow-scoreboard-btn)]"
+          style={{ backgroundImage: 'var(--gradient-scoreboard-btn)' }}
+        >
           Continue
         </button>
       )}

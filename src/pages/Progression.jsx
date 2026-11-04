@@ -194,7 +194,7 @@ export default function Progression() {
         <p className="mb-1 text-center font-semibold">
           {finished.guessedCorrectly ? `Guessed after Year ${finished.seasonsRevealed}! 🎉` : `Didn't guess it — it was ${finished.playerName}`}
         </p>
-        <div className="my-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-elevation-2)]">
+        <div className="my-4 rounded-xl border-l-4 border-l-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-elevation-2)]">
           <div className="flex justify-between py-0.5 text-sm">
             <span className="text-[var(--color-text-secondary)]">Base score</span>
             <span className="font-bold">{finished.guessedCorrectly ? `+${finished.baseScore}` : '—'}</span>
@@ -208,17 +208,17 @@ export default function Progression() {
           <div className="my-2 border-t border-[var(--color-border)]" />
           <div className="flex justify-between py-0.5">
             <span className="font-bold">Final Score</span>
-            <span className="font-bold text-[var(--color-primary)]">{finished.finalScore} / 1000</span>
+            <span className="text-xl font-black tabular-nums text-[var(--color-primary)]">{finished.finalScore} / 1000</span>
           </div>
         </div>
         <div className="mb-4 flex gap-3">
-          <div className="flex-1 bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">{finished.seasonsRevealed}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Seasons revealed</p>
+          <div className="flex-1 rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-2xl font-black tabular-nums">{finished.seasonsRevealed}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Seasons revealed</p>
           </div>
-          <div className="flex-1 bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">{finished.wrongGuesses}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Wrong guesses</p>
+          <div className="flex-1 rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-2xl font-black tabular-nums">{finished.wrongGuesses}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Wrong guesses</p>
           </div>
         </div>
         <ShareResult text={buildShareText('progression', today, finished)} />
@@ -243,12 +243,13 @@ export default function Progression() {
   return shell(
     <>
       <div
-        className={`mb-4 flex items-center justify-between rounded-xl border p-3 transition-colors ${
-          flashRed ? 'border-[var(--color-error)] bg-[var(--color-error)]/15 shadow-[var(--shadow-glow-error)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)] shadow-[var(--shadow-elevation-2)]'
+        className={`mb-4 flex items-center justify-between rounded-xl p-3 transition-colors ${
+          flashRed ? 'border-l-4 border-l-[var(--color-error)] bg-[var(--color-error)]/15 shadow-[var(--shadow-elevation-2)]' : 'shadow-[var(--shadow-scoreboard-banner)]'
         }`}
+        style={flashRed ? undefined : { backgroundImage: 'var(--gradient-scoreboard)' }}
       >
-        <span className="text-sm font-bold">⭐ Guess now for {potentialScore} points</span>
-        {wrongGuesses > 0 && <span className="text-xs font-bold text-[var(--color-error)]">Wrong: {wrongGuesses}</span>}
+        <span className="text-sm font-extrabold">⭐ Guess now for {potentialScore} points</span>
+        {wrongGuesses > 0 && <span className="text-xs font-bold">Wrong: {wrongGuesses}</span>}
       </div>
 
       <div className="space-y-2">
@@ -256,7 +257,7 @@ export default function Progression() {
           const showTeam = difficulty === 'medium'
           const keys = progressionStatKeysFor(config, s)
           return (
-            <div key={s.id ?? i} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-2)]">
+            <div key={s.id ?? i} className="rounded-xl border-l-4 border-l-[var(--color-border)] bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-2)]">
               <div className="mb-3 flex items-center justify-between">
                 <span className="rounded-full bg-[var(--color-primary)]/15 px-2.5 py-1 text-xs font-bold text-[var(--color-primary)]">
                   Year {i + 1}
@@ -265,9 +266,9 @@ export default function Progression() {
               </div>
               <div className="flex flex-wrap gap-2">
                 {keys.map((k) => (
-                  <div key={k} className="w-20 bg-[var(--color-elevated)] py-2 text-center">
-                    <p className="font-bold tabular-nums">{config.formatValue(s, k)}</p>
-                    <p className="text-[10px] text-[var(--color-text-tertiary)]">{config.labelFor(k)}</p>
+                  <div key={k} className="w-20 rounded-lg bg-[var(--color-elevated)] py-2 text-center">
+                    <p className="text-lg font-black tabular-nums">{config.formatValue(s, k)}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">{config.labelFor(k)}</p>
                   </div>
                 ))}
               </div>
@@ -279,7 +280,7 @@ export default function Progression() {
       <div className="mt-4">
         <p className="mb-1.5 text-xs font-semibold text-[var(--color-text-secondary)]">Who is this player?</p>
         {pendingGuess ? (
-          <div className="flex items-center justify-between rounded-xl border border-[var(--color-primary)] bg-[var(--color-surface)] px-3.5 py-2.5 shadow-[var(--shadow-glow-primary-card)]">
+          <div className="flex items-center justify-between rounded-xl border-l-4 border-l-[var(--color-primary)] bg-[var(--color-surface)] px-3.5 py-2.5 shadow-[var(--shadow-elevation-2)]">
             <span className="font-bold">{pendingGuess.full_name}</span>
             <button onClick={() => setPendingGuess(null)} className="text-[var(--color-text-tertiary)]">✕</button>
           </div>
@@ -290,7 +291,8 @@ export default function Progression() {
           <button
             onClick={() => pendingGuess && handleGuess(pendingGuess)}
             disabled={!pendingGuess}
-            className="flex-1 rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)] disabled:opacity-40 disabled:shadow-none"
+            className="flex-1 rounded-xl py-3 font-black text-white shadow-[var(--shadow-scoreboard-btn)] disabled:opacity-40 disabled:shadow-none"
+            style={pendingGuess ? { backgroundImage: 'var(--gradient-scoreboard-btn)' } : { backgroundColor: 'var(--color-primary)' }}
           >
             Submit Guess
           </button>

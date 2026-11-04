@@ -307,9 +307,12 @@ export default function StatLine() {
 
   return shell(
     <>
-      <div className="mb-4 flex items-center justify-between rounded-xl border border-[var(--color-border)] bg-[var(--color-elevated)] px-4 py-3 shadow-[var(--shadow-elevation-2)]">
-        <span className="font-bold">{mystery.positionLabel}</span>
-        <span className="text-sm text-[var(--color-text-secondary)]">{revealed}/{mystery.clueSteps.length} clues</span>
+      <div
+        className="mb-4 flex items-center justify-between rounded-xl px-4 py-3 shadow-[var(--shadow-scoreboard-banner)]"
+        style={{ backgroundImage: 'var(--gradient-scoreboard)' }}
+      >
+        <span className="font-black">{mystery.positionLabel}</span>
+        <span className="text-sm font-bold">{revealed}/{mystery.clueSteps.length} CLUES</span>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -317,9 +320,12 @@ export default function StatLine() {
           const idx = mystery.clueSteps.indexOf(key)
           const shown = revealed > idx
           return (
-            <div key={key} className={`rounded-xl border p-3 ${shown ? 'border-[var(--color-primary)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-primary-card)]' : 'border-[var(--color-border)] bg-[var(--color-elevated)] shadow-[var(--shadow-elevation-2)]'}`}>
-              <p className="text-xs text-[var(--color-text-secondary)]">{mystery.gridHeaders[key]}</p>
-              <p className="text-lg font-bold tabular-nums">{shown ? mystery.formatValue(key) : '?'}</p>
+            <div
+              key={key}
+              className={`rounded-xl border-l-4 bg-[var(--color-surface)] p-3 shadow-[var(--shadow-elevation-2)] ${shown ? 'border-l-[var(--color-primary)]' : 'border-l-[var(--color-border)] opacity-50'}`}
+            >
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[var(--color-text-secondary)]">{mystery.gridHeaders[key]}</p>
+              <p className="text-2xl font-black tabular-nums">{shown ? mystery.formatValue(key) : '?'}</p>
             </div>
           )
         })}
@@ -345,7 +351,7 @@ export default function StatLine() {
           tier, before that final guess) makes the hint functional instead of
           a pure "here's what you missed" consolation. */}
       {teammate && (
-        <div className="mt-3 whitespace-pre-line rounded-xl border border-[var(--color-success)]/40 bg-[var(--color-elevated)] px-3 py-2 text-xs font-semibold leading-snug text-[var(--color-text)] shadow-[var(--shadow-glow-success)]">
+        <div className="mt-3 whitespace-pre-line rounded-xl border-l-4 border-l-[var(--color-success)] bg-[var(--color-elevated)] px-3 py-2 text-xs font-semibold leading-snug text-[var(--color-text)] shadow-[var(--shadow-elevation-1)]">
           {teammateClueText(teammate)}
         </div>
       )}
@@ -368,9 +374,10 @@ export default function StatLine() {
         <PlayerSearchInput table={tables.players} onSelect={handleGuess} placeholder="Guess the player…" />
         <button
           onClick={handleSkip}
-          className="mt-3 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-elevated)] py-3 text-sm font-semibold text-[var(--color-text)]"
+          className="mt-3 w-full rounded-xl py-3 text-sm font-black text-white shadow-[var(--shadow-scoreboard-btn)]"
+          style={{ backgroundImage: 'var(--gradient-scoreboard-btn)' }}
         >
-          Skip (reveal next clue)
+          SKIP (REVEAL NEXT CLUE)
         </button>
       </div>
     </>

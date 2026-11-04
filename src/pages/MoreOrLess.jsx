@@ -216,7 +216,11 @@ export default function MoreOrLess() {
 
         {notice && <p className="mb-3 text-center text-sm text-[var(--color-error)]">{notice}</p>}
         <p className="mb-3 text-center text-xs text-[var(--color-text-tertiary)]">Personal best: {personalBest}</p>
-        <button onClick={startGame} className="w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
+        <button
+          onClick={startGame}
+          className="w-full rounded-xl py-3 font-black text-white shadow-[var(--shadow-scoreboard-btn)]"
+          style={{ backgroundImage: 'var(--gradient-scoreboard-btn)' }}
+        >
           Play
         </button>
       </GameShell>
@@ -243,21 +247,21 @@ export default function MoreOrLess() {
         <p className="mb-1 text-center text-2xl font-black">{result.score} pts</p>
         <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">Out of lives!</p>
         <div className="mb-4 grid grid-cols-2 gap-3">
-          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">{result.roundsPlayed}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Rounds played</p>
+          <div className="rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-2xl font-black tabular-nums">{result.roundsPlayed}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Rounds played</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">🔥 {result.bestStreak}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Best streak</p>
+          <div className="rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-2xl font-black tabular-nums">🔥 {result.bestStreak}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Best streak</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">{result.correctAnswers}/{result.roundsPlayed}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Correct</p>
+          <div className="rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-2xl font-black tabular-nums">{result.correctAnswers}/{result.roundsPlayed}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Correct</p>
           </div>
-          <div className="bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
-            <p className="font-bold">{longest.name}</p>
-            <p className="text-xs text-[var(--color-text-tertiary)]">Longest reign ({longest.rounds})</p>
+          <div className="rounded-xl bg-[var(--color-elevated)] p-3 text-center shadow-[var(--shadow-elevation-2)]">
+            <p className="text-lg font-black">{longest.name}</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-[var(--color-text-tertiary)]">Longest reign ({longest.rounds})</p>
           </div>
         </div>
         <ShareResult text={buildShareText('more-or-less', todayStr(), payload)} />
@@ -302,15 +306,15 @@ export default function MoreOrLess() {
                   key={side}
                   onClick={() => pick(isChampion)}
                   disabled={revealing || generating}
-                  className={`rounded-2xl border p-4 text-center transition-colors ${
-                    flashGreen ? 'border-[var(--color-success)] bg-[var(--color-success)]/10 shadow-[var(--shadow-glow-success)]' :
-                    flashRed ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 shadow-[var(--shadow-glow-primary-card)]' :
-                    'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-elevation-2)] hover:border-[var(--color-primary)]/50'
+                  className={`rounded-2xl border-2 p-4 text-center shadow-[var(--shadow-elevation-2)] transition-colors ${
+                    flashGreen ? 'border-[var(--color-success)] bg-[var(--color-success)]/10' :
+                    flashRed ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10' :
+                    'border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-primary)]/50'
                   }`}
                 >
                   <p className="font-extrabold">{p.name}</p>
                   <p className="text-xs text-[var(--color-text-secondary)]">{p.position}{isChampion && championRounds > 0 ? ` · ${championRounds} won` : ''}</p>
-                  {revealing && <p className="mt-2 text-lg font-bold tabular-nums">{p.value.toLocaleString()}</p>}
+                  {revealing && <p className="mt-2 text-2xl font-black tabular-nums">{p.value.toLocaleString()}</p>}
                 </button>
               )
             })}

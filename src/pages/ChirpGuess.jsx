@@ -15,9 +15,9 @@ import MoreGamesCta from '../components/MoreGamesCta'
 const MAX_GUESSES = 8
 
 const tileColor = {
-  green: 'bg-[var(--color-success)]/20 border-[var(--color-success)] text-[var(--color-success)] shadow-[var(--shadow-glow-success)]',
-  orange: 'bg-[var(--color-warning)]/20 border-[var(--color-warning)] text-[var(--color-warning)] shadow-[var(--shadow-glow-warning)]',
-  grey: 'bg-[var(--color-elevated)] border-[var(--color-border)] text-[var(--color-text-secondary)] shadow-[var(--shadow-elevation-2)]',
+  green: 'bg-[var(--color-success)]/15 border-l-[var(--color-success)] text-[var(--color-success)]',
+  orange: 'bg-[var(--color-warning)]/15 border-l-[var(--color-warning)] text-[var(--color-warning)]',
+  grey: 'bg-[var(--color-elevated)] border-l-[var(--color-border)] text-[var(--color-text-secondary)]',
 }
 
 // supabase-js retries a failed network request internally with its own
@@ -229,9 +229,12 @@ export default function ChirpGuess() {
 
   return (
     <GameShell emoji="🎯" title={title} howToPlay="chirp-guess">
-      <p className="mb-4 text-sm text-[var(--color-text-secondary)]">
-        Guess {"today's"} mystery {SPORT_META[sport].label} player. {MAX_GUESSES - rows.length} guesses left.
-      </p>
+      <div
+        className="mb-4 rounded-xl px-4 py-3 text-sm font-extrabold shadow-[var(--shadow-scoreboard-banner)]"
+        style={{ backgroundImage: 'var(--gradient-scoreboard)' }}
+      >
+        Guess {"today's"} mystery {SPORT_META[sport].label} player — {MAX_GUESSES - rows.length} left
+      </div>
 
       <PlayerSearchInput
         table={tables.players}
@@ -250,11 +253,11 @@ export default function ChirpGuess() {
               {row.tiles.map((t, j) => (
                 <div
                   key={j}
-                  className={`flex flex-col items-center justify-center rounded-lg border py-2 text-[10px] font-bold ${tileColor[t.color]}`}
+                  className={`flex flex-col items-center justify-center rounded-lg border-l-4 py-2 text-[10px] font-bold shadow-[var(--shadow-elevation-1)] ${tileColor[t.color]}`}
                   title={headers[j]}
                 >
-                  <span>{headers[j]}</span>
-                  <span className="text-[9px] font-normal normal-case opacity-80">{String(t.value)}</span>
+                  <span className="text-[9px] opacity-80">{headers[j]}</span>
+                  <span className="text-xs font-black normal-case">{String(t.value)}</span>
                   {t.arrow && <span className="text-sm">{t.arrow === 'up' ? '↑' : '↓'}</span>}
                 </div>
               ))}

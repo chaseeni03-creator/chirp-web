@@ -163,16 +163,14 @@ export default function ThePath() {
   if (finished) {
     return shell(
       <>
-        <p className="mb-1 text-center text-2xl font-extrabold">{finished.totalScore} / 5000</p>
+        <p className="mb-1 text-center text-3xl font-black tabular-nums">{finished.totalScore} / 5000</p>
         <p className="mb-4 text-center text-sm text-[var(--color-text-secondary)]">{finished.correctCount}/5 solved</p>
         <div className="mb-4 space-y-2">
           {finished.perPlayer.map((p, i) => (
             <div
               key={i}
-              className={`flex items-center justify-between rounded-xl border px-3 py-2.5 ${
-                p.solved
-                  ? 'border-[var(--color-success)]/40 bg-[var(--color-surface)] shadow-[var(--shadow-glow-success)]'
-                  : 'border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-elevation-2)]'
+              className={`flex items-center justify-between rounded-xl border-l-4 bg-[var(--color-surface)] px-3 py-2.5 shadow-[var(--shadow-elevation-2)] ${
+                p.solved ? 'border-l-[var(--color-success)]' : 'border-l-[var(--color-border)]'
               }`}
             >
               <span className="flex items-center gap-2 font-semibold">
@@ -206,13 +204,16 @@ export default function ThePath() {
 
   return shell(
     <>
-      <div className="mb-4 flex items-center justify-between text-xs font-bold text-[var(--color-text-secondary)]">
-        <span>
-          Player {currentIndex + 1} of {players.length}
+      <div
+        className="mb-4 flex items-center justify-between rounded-xl px-4 py-3 shadow-[var(--shadow-scoreboard-banner)]"
+        style={{ backgroundImage: 'var(--gradient-scoreboard)' }}
+      >
+        <span className="text-xs font-extrabold">
+          PLAYER {currentIndex + 1} OF {players.length}
         </span>
-        <div className="h-1.5 flex-1 mx-3 overflow-hidden rounded-full bg-[var(--color-elevated)]">
+        <div className="h-1.5 w-28 overflow-hidden rounded-full bg-black/25">
           <div
-            className="h-full bg-[var(--color-primary)] transition-all"
+            className="h-full bg-white transition-all"
             style={{ width: `${(currentIndex / players.length) * 100}%` }}
           />
         </div>
@@ -253,17 +254,17 @@ export default function ThePath() {
           <button
             onClick={() => setStatsRevealed(true)}
             disabled={statsRevealed}
-            className="flex-1 rounded-lg border border-[var(--color-primary)]/50 py-2.5 text-xs font-bold disabled:opacity-40"
+            className="flex-1 rounded-xl border-l-4 border-l-[var(--color-primary)] bg-[var(--color-surface)] py-2.5 text-xs font-black shadow-[var(--shadow-elevation-1)] disabled:opacity-40"
           >
-            {statsRevealed ? 'Stats shown ✓' : 'Show Stats'}
+            {statsRevealed ? 'STATS SHOWN ✓' : 'SHOW STATS'}
             {!statsRevealed && <span className="block font-normal text-[var(--color-text-tertiary)]">−50% score</span>}
           </button>
           <button
             onClick={() => setPositionRevealed(true)}
             disabled={positionRevealed}
-            className="flex-1 rounded-lg border border-[var(--color-primary)]/50 py-2.5 text-xs font-bold disabled:opacity-40"
+            className="flex-1 rounded-xl border-l-4 border-l-[var(--color-primary)] bg-[var(--color-surface)] py-2.5 text-xs font-black shadow-[var(--shadow-elevation-1)] disabled:opacity-40"
           >
-            {positionRevealed ? 'Position shown ✓' : 'Show Position'}
+            {positionRevealed ? 'POSITION SHOWN ✓' : 'SHOW POSITION'}
             {!positionRevealed && <span className="block font-normal text-[var(--color-text-tertiary)]">−25% of remaining</span>}
           </button>
         </div>
@@ -281,17 +282,21 @@ export default function ThePath() {
 
       {(solved || failed) && (
         <div
-          className={`mb-4 rounded-xl border p-4 ${
+          className={`mb-4 rounded-xl border-l-4 p-4 shadow-[var(--shadow-elevation-2)] ${
             solved
-              ? 'border-[var(--color-success)] bg-[var(--color-success)]/10 shadow-[var(--shadow-glow-success)]'
-              : 'border-[var(--color-error)] bg-[var(--color-error)]/10 shadow-[var(--shadow-glow-error)]'
+              ? 'border-l-[var(--color-success)] bg-[var(--color-success)]/10'
+              : 'border-l-[var(--color-error)] bg-[var(--color-error)]/10'
           }`}
         >
           <p className="mb-1 font-bold">
             {solved ? `🎉 Correct! +${results[results.length - 1]?.score ?? 0} pts` : '😔 Out of guesses'}
           </p>
           <p className="mb-3 text-sm">The player was {current.player.full_name}</p>
-          <button onClick={nextPlayer} className="w-full rounded-xl bg-[var(--color-primary)] py-3 font-bold text-white shadow-[var(--shadow-glow-primary-card)]">
+          <button
+            onClick={nextPlayer}
+            className="w-full rounded-xl py-3 font-black text-white shadow-[var(--shadow-scoreboard-btn)]"
+            style={{ backgroundImage: 'var(--gradient-scoreboard-btn)' }}
+          >
             {currentIndex >= players.length - 1 ? 'See Results' : 'Next Player'}
           </button>
         </div>
