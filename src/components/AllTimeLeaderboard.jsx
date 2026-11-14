@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useGroup } from '../context/GroupContext'
+import { signInWithGoogle } from '../lib/groups'
 import { SPORTS, SPORT_META } from '../lib/sports'
 import CombinedLeaderboardFilterBar from './CombinedLeaderboardFilterBar'
 import CombinedLeaderboardList from './CombinedLeaderboardList'
@@ -11,13 +12,38 @@ const TAB_LABEL = { overall: 'Overall', nfl: 'NFL', mlb: 'MLB', nba: 'NBA' }
 
 /** Top-level Overall/NFL/MLB/NBA combined leaderboard — port of
  * leaderboard_screen.dart. Mounted by Leaderboard.jsx's "All-Time Rankings"
- * mode, alongside (not replacing) the existing live Today/Yesterday board. */
+ * mode, alongside (not replacing) the existing live Today/Yesterday board.
+ *
+ * Gated behind a real (Google) account — guest identity has no durable,
+ * server-verifiable identity (see groups.js's header comment), so letting
+ * guests appear on a cross-sport/cross-time ranking risked duplicate or
+ * impersonated entries. The existing daily board stays guest-accessible;
+ * only this section requires signing in. */
 export default function AllTimeLeaderboard() {
   const { googleSession } = useGroup()
   const userId = googleSession?.user?.id ?? null
   const [tab, setTab] = useState('overall')
   const [period, setPeriod] = useState('allTime')
   const [sortMode, setSortMode] = useState('total')
+
+  if (!userId) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
+        <p className="text-3xl">🏆</p>
+        <p className="mt-2 text-base font-extrabold">Create an account to see the All-Time Rankings</p>
+        <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">
+          These rankings are for signed-in players only, so every name on the board is a real account.
+        </p>
+        <button
+          type="button"
+          onClick={() => signInWithGoogle()}
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-border)] bg-white py-3 text-sm font-bold text-black"
+        >
+          <span className="font-black">G</span> Continue with Google
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div>
