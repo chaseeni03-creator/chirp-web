@@ -8,6 +8,7 @@ import { SPORTS, SPORT_META } from '../lib/sports'
 import { fetchDailyLeaderboardTop, fetchMyRank, subscribeToDailyLeaderboard, yesterdayStr } from '../lib/dailyLeaderboard'
 import { todayStr } from '../lib/supabase'
 import { buildLeaderboardShareText, copyToClipboard, friendlyDate } from '../lib/share'
+import AllTimeLeaderboard from '../components/AllTimeLeaderboard'
 
 const MEDAL = { 1: '👑', 2: '🥈', 3: '🥉' }
 // Universal podium convention (gold/silver/bronze), distinct from the badge
@@ -33,6 +34,7 @@ export default function Leaderboard() {
   const isCrossSport = gameType in CROSS_SPORT_GAME_LABELS
   const effectiveSport = isCrossSport ? 'all' : sport
   const [period, setPeriod] = useState('today') // 'today' | 'yesterday'
+  const [mode, setMode] = useState('daily') // 'daily' | 'alltime'
   const [rows, setRows] = useState([])
   const [mine, setMine] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -107,6 +109,29 @@ export default function Leaderboard() {
 
   return (
     <GameShell emoji="🏆" title="Leaderboard">
+      <div className="mb-4 flex gap-1.5">
+        <button
+          onClick={() => setMode('daily')}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-colors ${
+            mode === 'daily' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
+          }`}
+        >
+          Daily Board
+        </button>
+        <button
+          onClick={() => setMode('alltime')}
+          className={`flex-1 rounded-lg py-2 text-xs font-bold transition-colors ${
+            mode === 'alltime' ? 'bg-[var(--color-primary)] text-white' : 'bg-[var(--color-elevated)] text-[var(--color-text-secondary)]'
+          }`}
+        >
+          All-Time Rankings
+        </button>
+      </div>
+
+      {mode === 'alltime' && <AllTimeLeaderboard />}
+
+      {mode === 'daily' && (
+      <>
       <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1">
         {ALL_GAME_TYPES.map((g) => (
           <button
@@ -236,6 +261,8 @@ export default function Leaderboard() {
           </>
         )}
       </div>
+      </>
+      )}
     </GameShell>
   )
 }
