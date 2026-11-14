@@ -76,6 +76,111 @@ export async function migrateGuestLeaderboardScores(guestId) {
   if (error) throw error
 }
 
+// ── Weekly aggregation — TEMPORARY, additive only ───────────────────────────
+// Added to give the leaderboard enough entries to look alive while there
+// are still too few daily players (see Leaderboard.jsx's WEEKLY_MODE flag).
+// Nothing above this point is touched: submitDailyScore still writes one
+// row per day exactly as before, and the per-day RPCs/realtime subscription
+// stay intact so flipping WEEKLY_MODE back off fully restores today's
+// behavior with zero data-path changes. These query daily_leaderboard
+// directly (its SELECT RLS is open, confirmed live) rather than via RPC,
+// since "sum across a date range" isn't something the existing per-day RPCs
+// do and isn't worth a new server-side function for a temporary measure.
+
+/** Monday of the current week (weeksAgo=0) or N weeks back, as YYYY-MM-DD —
+ * same calendar-week convention as combinedLeaderboard.js's mondayStr(),
+ * duplicated rather than imported to keep these two unrelated leaderboard
+ * systems decoupled (see combinedLeaderboard.js's vocabulary note). Exported
+ * so Leaderboard.jsx can show the visible week's date range in its subtitle. */
+export function mondayStr(weeksAgo = 0) {
+  const now = new Date()
+  const daysSinceMonday = (now.getDay() + 6) % 7
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - daysSinceMonday - weeksAgo * 7)
+  const yyyy = monday.getFullYear()
+  const mm = String(monday.getMonth() + 1).padStart(2, '0')
+  const dd = String(monday.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+/** Sunday of that same week — the display-only end of the range shown in
+ * Leaderboard.jsx's subtitle (the actual query uses weekRangeFor's exclusive
+ * next-Monday bound, not this). Built from local "now" the same way
+ * mondayStr is, rather than parsing mondayStr's own string output — an ISO
+ * date-only string parses as UTC midnight in JS, which can land on the
+ * wrong local day depending on timezone offset. */
+export function sundayStr(weeksAgo = 0) {
+  const now = new Date()
+  const daysSinceMonday = (now.getDay() + 6) % 7
+  const sunday = new Date(now)
+  sunday.setDate(now.getDate() - daysSinceMonday - weeksAgo * 7 + 6)
+  const yyyy = sunday.getFullYear()
+  const mm = String(sunday.getMonth() + 1).padStart(2, '0')
+  const dd = String(sunday.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function weekRangeFor(weeksAgo) {
+  const start = mondayStr(weeksAgo)
+  const end = mondayStr(weeksAgo - 1) // exclusive upper bound — next Monday
+  return { start, end }
+}
+
+/** Groups a week's raw daily_leaderboard rows by identity, summing each
+ * identity's per-day best score (every row already IS "that day's best",
+ * per submitDailyScore's upsert semantics, so summing rows = summing days). */
+function aggregateByIdentity(rows) {
+  const byIdentity = new Map()
+  for (const r of rows) {
+    const key = r.user_id ? `u:${r.user_id}` : `g:${r.guest_id}`
+    const entry = byIdentity.get(key) ?? { score: 0, nickname: r.nickname, latestAt: r.submitted_at }
+    entry.score += r.score
+    if (r.submitted_at > entry.latestAt) {
+      entry.latestAt = r.submitted_at
+      entry.nickname = r.nickname // latest submission's nickname wins, same "most recent row's attribute" convention used elsewhere
+    }
+    byIdentity.set(key, entry)
+  }
+  return [...byIdentity.entries()]
+    .map(([key, v]) => ({ key, nickname: v.nickname, score: v.score }))
+    .sort((a, b) => b.score - a.score)
+    .map((row, i) => ({ rank: i + 1, nickname: row.nickname, score: row.score }))
+}
+
+async function fetchWeekRows({ gameType, sport, weeksAgo }) {
+  const { start, end } = weekRangeFor(weeksAgo)
+  const { data, error } = await supabase
+    .from('daily_leaderboard')
+    .select('nickname, score, user_id, guest_id, submitted_at')
+    .eq('game_type', gameType)
+    .eq('sport', sport)
+    .gte('game_date', start)
+    .lt('game_date', end)
+  if (error) throw error
+  return data || []
+}
+
+/** Top N for one game/sport/week — same { rank, nickname, score } shape as
+ * fetchDailyLeaderboardTop (no `era`, since a week's rows can span several). */
+export async function fetchWeeklyLeaderboardTop({ gameType, sport, weeksAgo = 0, limit = 10 }) {
+  const rows = await fetchWeekRows({ gameType, sport, weeksAgo })
+  return aggregateByIdentity(rows).slice(0, limit)
+}
+
+/** The current identity's rank/score/total_players for one game/sport/week — null if they haven't played that week. */
+export async function fetchMyWeeklyRank({ gameType, sport, weeksAgo = 0, userId }) {
+  const identity = getLeaderboardIdentity()
+  const key = userId ? `u:${userId}` : `g:${identity.guestId}`
+  const rows = await fetchWeekRows({ gameType, sport, weeksAgo })
+  const myRows = rows.filter((r) => (r.user_id ? `u:${r.user_id}` : `g:${r.guest_id}`) === key)
+  if (myRows.length === 0) return null
+
+  const myScore = myRows.reduce((sum, r) => sum + r.score, 0)
+  const ranked = aggregateByIdentity(rows)
+  const rank = 1 + ranked.filter((r) => r.score > myScore).length
+  return { rank, total_players: ranked.length, score: myScore }
+}
+
 /**
  * Live updates for one day — Supabase Realtime's postgres_changes only
  * supports a single `column=eq.value` filter, not a compound AND, so this

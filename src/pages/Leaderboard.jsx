@@ -5,7 +5,10 @@ import { useSport } from '../context/SportContext'
 import { useGroup } from '../context/GroupContext'
 import { GAME_LABELS, GAME_ORDER, CROSS_SPORT_GAME_LABELS, eraLabel } from '../lib/groups'
 import { SPORTS, SPORT_META } from '../lib/sports'
-import { fetchDailyLeaderboardTop, fetchMyRank, subscribeToDailyLeaderboard, yesterdayStr } from '../lib/dailyLeaderboard'
+import {
+  fetchDailyLeaderboardTop, fetchMyRank, subscribeToDailyLeaderboard, yesterdayStr,
+  fetchWeeklyLeaderboardTop, fetchMyWeeklyRank, mondayStr as weekMondayStr, sundayStr as weekSundayStr,
+} from '../lib/dailyLeaderboard'
 import { todayStr } from '../lib/supabase'
 import { buildLeaderboardShareText, copyToClipboard, friendlyDate } from '../lib/share'
 import AllTimeLeaderboard from '../components/AllTimeLeaderboard'
@@ -23,6 +26,15 @@ const PODIUM_COLORS = { 1: 'var(--color-rarity-legendary)', 2: 'var(--color-rari
 const ALL_GAME_TYPES = [...GAME_ORDER, ...Object.keys(CROSS_SPORT_GAME_LABELS)]
 const ALL_GAME_LABELS = { ...GAME_LABELS, ...CROSS_SPORT_GAME_LABELS }
 
+// TEMPORARY: not enough daily players yet for the per-day board to look like
+// anything but empty — sums each player's best score per day across the
+// week instead, via the new fetchWeeklyLeaderboardTop/fetchMyWeeklyRank in
+// dailyLeaderboard.js. Nothing about the daily table/RPCs/submission path
+// changes; flipping this back to false restores today's exact Today/
+// Yesterday live behavior with zero data-path risk.
+const WEEKLY_MODE = true
+const PERIOD_LABEL = WEEKLY_MODE ? { primary: 'This Week', secondary: 'Last Week' } : { primary: 'Today', secondary: "Yesterday's Champions" }
+
 export default function Leaderboard() {
   const [searchParams] = useSearchParams()
   const { sport, setSport } = useSport()
@@ -33,7 +45,7 @@ export default function Leaderboard() {
   })
   const isCrossSport = gameType in CROSS_SPORT_GAME_LABELS
   const effectiveSport = isCrossSport ? 'all' : sport
-  const [period, setPeriod] = useState('today') // 'today' | 'yesterday'
+  const [period, setPeriod] = useState(WEEKLY_MODE ? 'thisWeek' : 'today') // 'today'|'yesterday' or 'thisWeek'|'lastWeek'
   const [mode, setMode] = useState('daily') // 'daily' | 'alltime'
   const [rows, setRows] = useState([])
   const [mine, setMine] = useState(null)
@@ -50,15 +62,21 @@ export default function Leaderboard() {
   }, [])
 
   const gameDate = period === 'today' ? todayStr() : yesterdayStr()
+  const weeksAgo = period === 'thisWeek' ? 0 : 1
   const userId = googleSession?.user?.id ?? null
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [top, myRank] = await Promise.all([
-        fetchDailyLeaderboardTop({ gameType, sport: effectiveSport, gameDate }),
-        fetchMyRank({ gameType, sport: effectiveSport, gameDate, userId }),
-      ])
+      const [top, myRank] = WEEKLY_MODE
+        ? await Promise.all([
+            fetchWeeklyLeaderboardTop({ gameType, sport: effectiveSport, weeksAgo }),
+            fetchMyWeeklyRank({ gameType, sport: effectiveSport, weeksAgo, userId }),
+          ])
+        : await Promise.all([
+            fetchDailyLeaderboardTop({ gameType, sport: effectiveSport, gameDate }),
+            fetchMyRank({ gameType, sport: effectiveSport, gameDate, userId }),
+          ])
       setRows(top)
       setMine(myRank)
     } catch (err) {
@@ -68,15 +86,17 @@ export default function Leaderboard() {
     } finally {
       setLoading(false)
     }
-  }, [gameType, effectiveSport, gameDate, userId])
+  }, [gameType, effectiveSport, gameDate, weeksAgo, userId])
 
   useEffect(() => {
     load()
   }, [load])
 
-  // Live updates only make sense for "Today" — yesterday's board is final.
+  // Live updates only make sense for "Today" on the per-day board — a
+  // weekly sum isn't kept live (see WEEKLY_MODE's comment above), and
+  // yesterday's board is final either way.
   useEffect(() => {
-    if (period !== 'today') {
+    if (WEEKLY_MODE || period !== 'today') {
       setLive(false)
       return
     }
@@ -97,7 +117,7 @@ export default function Leaderboard() {
     const text = buildLeaderboardShareText({
       gameLabel: ALL_GAME_LABELS[gameType],
       sport: effectiveSport,
-      dateStr: gameDate,
+      dateStr: WEEKLY_MODE ? weekMondayStr(weeksAgo) : gameDate,
       rank: mine.rank,
       totalPlayers: mine.total_players,
       score: mine.score,
@@ -174,35 +194,36 @@ export default function Leaderboard() {
 
       <div className="mb-4 flex gap-4 text-sm">
         <button
-          onClick={() => setPeriod('today')}
-          className={`font-bold ${period === 'today' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+          onClick={() => setPeriod(WEEKLY_MODE ? 'thisWeek' : 'today')}
+          className={`font-bold ${period === (WEEKLY_MODE ? 'thisWeek' : 'today') ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
         >
-          Today
+          {PERIOD_LABEL.primary}
         </button>
         <button
-          onClick={() => setPeriod('yesterday')}
-          className={`font-bold ${period === 'yesterday' ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
+          onClick={() => setPeriod(WEEKLY_MODE ? 'lastWeek' : 'yesterday')}
+          className={`font-bold ${period === (WEEKLY_MODE ? 'lastWeek' : 'yesterday') ? 'text-[var(--color-primary)]' : 'text-[var(--color-text-secondary)]'}`}
         >
-          Yesterday's Champions
+          {PERIOD_LABEL.secondary}
         </button>
       </div>
 
       <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-4">
         <div className="mb-1 flex items-start justify-between gap-2">
           <p className="font-extrabold">
-            🏆 {period === 'today' ? "Today's" : "Yesterday's"} {ALL_GAME_LABELS[gameType]} Leaders
+            🏆 {WEEKLY_MODE ? PERIOD_LABEL.primary + "'s" : period === 'today' ? "Today's" : "Yesterday's"} {ALL_GAME_LABELS[gameType]} Leaders
           </p>
           {live && <span className="shrink-0 text-xs font-bold text-red-500">🔴 Live</span>}
         </div>
         <p className="mb-3 text-xs text-[var(--color-text-secondary)]">
-          {isCrossSport ? 'All Sports' : SPORT_META[sport].label} · {friendlyDate(gameDate)}
+          {isCrossSport ? 'All Sports' : SPORT_META[sport].label} ·{' '}
+          {WEEKLY_MODE ? `${friendlyDate(weekMondayStr(weeksAgo))} – ${friendlyDate(weekSundayStr(weeksAgo))}` : friendlyDate(gameDate)}
         </p>
 
         {loading ? (
           <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-[var(--color-text-secondary)]">
-            No scores yet {period === 'today' ? 'today' : 'yesterday'}.
+            No scores yet {WEEKLY_MODE ? 'this week' : period === 'today' ? 'today' : 'yesterday'}.
           </p>
         ) : (
           <>
