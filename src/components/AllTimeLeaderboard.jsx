@@ -10,6 +10,12 @@ import { getOverallLeaderboard, getOverallMyRank, getOverallGamesNeededForAverag
 const TABS = ['overall', ...SPORTS]
 const TAB_LABEL = { overall: 'Overall', nfl: 'NFL', mlb: 'MLB', nba: 'NBA' }
 
+// Not enough real users yet for this to look like anything other than an
+// empty board — hidden behind "Coming Soon" until there's enough activity
+// to be worth showing. Flip to false to re-enable; the real implementation
+// below is untouched.
+const COMING_SOON = true
+
 /** Top-level Overall/NFL/MLB/NBA combined leaderboard — port of
  * leaderboard_screen.dart. Mounted by Leaderboard.jsx's "All-Time Rankings"
  * mode, alongside (not replacing) the existing live Today/Yesterday board.
@@ -25,6 +31,18 @@ export default function AllTimeLeaderboard() {
   const [tab, setTab] = useState('overall')
   const [period, setPeriod] = useState('allTime')
   const [sortMode, setSortMode] = useState('total')
+
+  if (COMING_SOON) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-elevated)] p-6 text-center">
+        <p className="text-3xl">🏆</p>
+        <p className="mt-2 text-base font-extrabold">All-Time Rankings — Coming Soon</p>
+        <p className="mt-1.5 text-sm text-[var(--color-text-secondary)]">
+          We're waiting for more players before this board is worth looking at. Check back soon!
+        </p>
+      </div>
+    )
+  }
 
   if (!userId) {
     return (
